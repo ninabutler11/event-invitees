@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Ranker — Pillar VC</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%);
+    border-bottom: 1px solid #2d3548;
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+    background: #e63329;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: white;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .header h1 span {
+    color: #e63329;
+  }
+
+
+  .container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 32px 40px;
+  }
+
+  .input-section {
+    background: #1a1f2e;
+    border: 1px solid #2d3548;
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+
+  .input-section h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #f1f5f9;
+  }
+
+  .input-section p {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 18px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .input-row input, .input-row select {
+    padding: 10px 14px;
+    background: #0f1117;
+    border: 1px solid #2d3548;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .input-row input:focus, .input-row select:focus {
+    outline: none;
+    border-color: #e63329;
+  }
+
+  .input-row input[name="name"] { flex: 2; }
+  .input-row input[name="email"] { flex: 1; }
+  .input-row input[name="researchpage"] { flex: 1; }
+  .input-row input[name="advisor"] { flex: 1; }
+  .input-row select { width: 120px; }
+
+  .professor-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    min-height: 20px;
+  }
+
+  .professor-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #2d3548;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #e2e8f0;
+  }
+
+  .professor-tag .univ {
+    color: #e63329;
+    font-size: 11px;
+  }
+
+  .professor-tag .remove {
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 16px;
+    line-height: 1;
+    margin-left: 2px;
+  }
+
+  .professor-tag .remove:hover { color: #ef4444; }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: #e63329;
+    color: white;
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    background: #2d3548;
+    color: #e2e8f0;
+  }
+
+  .btn-secondary:hover { background: #3b4560; }
+
+  .btn-add {
+    padding: 10px 18px;
+    background: #2d3548;
+    color: #e2e8f0;
+  }
+
+  .btn-add:hover { background: #3b4560; }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .progress-section {
+    display: none;
+    margin-bottom: 28px;
+  }
+
+  .progress-section.active { display: block; }
+
+  .progress-bar-container {
+    background: #1a1f2e;
+    border: 1px solid #2d3548;
+    border-radius: 12px;
+    padding: 20px 28px;
+  }
+
+  .progress-text {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 12px;
+  }
+
+  .progress-text span { color: #e63329; font-weight: 600; }
+
+  .progress-bar {
+    height: 6px;
+    background: #2d3548;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #e63329;
+    border-radius: 3px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  .results-section {
+    display: none;
+  }
+
+  .results-section.active { display: block; }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .results-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  /* Card grid layout */
+  .cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-card {
+    background: #1a1f2e;
+    border: 1px solid #2d3548;
+    border-radius: 12px;
+    padding: 20px 24px;
+    transition: border-color 0.15s;
+  }
+
+  .result-card:hover {
+    border-color: #3b4560;
+  }
+
+  .result-card.silenced {
+    opacity: 0.4;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-rank {
+    font-weight: 700;
+    font-size: 18px;
+    color: #e63329;
+    min-width: 28px;
+  }
+
+  .card-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: #f1f5f9;
+  }
+
+  .card-university {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  .card-links {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .card-links a {
+    color: #e63329;
+    text-decoration: none;
+    font-size: 12px;
+    padding: 3px 8px;
+    border: 1px solid #2d3548;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+
+  .card-links a:hover {
+    background: rgba(230, 51, 41, 0.1);
+    border-color: #e63329;
+  }
+
+  .card-silence {
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .card-silence input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: #e63329;
+  }
+
+  .card-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    padding-left: 40px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  .card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .card-meta .meta-label {
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .card-scores {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-left: 40px;
+    flex-wrap: wrap;
+  }
+
+  .score-pill {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #151a27;
+    border: 1px solid #2d3548;
+  }
+
+  .score-pill .score-label {
+    font-weight: 400;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-right: 4px;
+  }
+
+  .score-pill.pill-total {
+    background: #1e2433;
+    border-color: #3b4560;
+    font-size: 14px;
+  }
+
+  .score-high { color: #34d399; }
+  .score-mid { color: #fbbf24; }
+  .score-low { color: #94a3b8; }
+
+  .card-areas {
+    margin-top: 10px;
+    padding-left: 40px;
+    font-size: 12px;
+    color: #e63329;
+    line-height: 1.4;
+  }
+
+  .card-section {
+    margin-top: 14px;
+    padding-left: 40px;
+  }
+
+  .card-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+
+  .card-section-text {
+    font-size: 13px;
+    color: #c8d0dc;
+    line-height: 1.6;
+  }
+
+  .card-signals {
+    margin-top: 14px;
+    padding: 10px 14px;
+    margin-left: 40px;
+    background: rgba(251, 191, 36, 0.06);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: 8px;
+  }
+
+  .card-signals .card-section-label {
+    color: #fbbf24;
+  }
+
+  .card-signals .card-section-text {
+    color: #fbbf24;
+    font-size: 12px;
+  }
+
+  /* Feedback thumbs */
+  .card-feedback {
+    display: flex;
+    gap: 4px;
+  }
+
+  .thumb-btn {
+    background: none;
+    border: 1px solid #2d3548;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+
+  .thumb-btn:hover {
+    border-color: #3b4560;
+    background: #1e2433;
+  }
+
+  .thumb-btn.thumb-up.active {
+    background: rgba(52, 211, 153, 0.15);
+    border-color: #34d399;
+  }
+
+  .thumb-btn.thumb-down.active {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: #f87171;
+  }
+
+  .result-card.feedback-good {
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+
+  .result-card.feedback-bad {
+    border-color: rgba(248, 113, 113, 0.3);
+    opacity: 0.6;
+  }
+
+  /* Chat bar */
+  .chat-bar {
+    background: #1a1f2e;
+    border-bottom: 1px solid #2d3548;
+    padding: 10px 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .chat-icon { font-size: 16px; flex-shrink: 0; color: #e63329; }
+
+  .chat-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: #0f1117;
+    border: 1px solid #2d3548;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    resize: none;
+    line-height: 1.4;
+  }
+
+  .chat-input:focus { border-color: #e63329; }
+  .chat-input::placeholder { color: #4a5568; }
+
+  .chat-send {
+    background: #e63329;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .chat-send:hover { background: #c92a21; }
+  .chat-send:disabled { background: #555; cursor: not-allowed; }
+
+  .chat-clear {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .chat-clear:hover { color: #e2e8f0; }
+
+  .chat-response {
+    background: #151a27;
+    border: 1px solid #2d3548;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 40px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #c8d0dc;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .chat-response.active { display: block; }
+  .chat-response.loading { color: #64748b; font-style: italic; }
+
+  /* Comment modal */
+  .comment-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .comment-modal {
+    background: #1a1f2e;
+    border: 1px solid #2d3548;
+    border-radius: 12px;
+    padding: 24px;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  .comment-modal h3 {
+    font-size: 16px;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+  }
+
+  .comment-modal .cm-sub {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+
+  .comment-modal textarea {
+    width: 100%;
+    height: 80px;
+    background: #0f1117;
+    border: 1px solid #2d3548;
+    border-radius: 8px;
+    padding: 10px;
+    color: #e2e8f0;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+  }
+
+  .comment-modal textarea:focus { border-color: #e63329; }
+  .comment-modal textarea::placeholder { color: #4a5568; }
+
+  .cm-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+
+  .cm-btns button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .cm-skip {
+    background: none;
+    border: 1px solid #2d3548;
+    color: #94a3b8;
+  }
+
+  .cm-skip:hover { border-color: #3b4560; color: #e2e8f0; }
+
+  .cm-save {
+    background: #e63329;
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+
+  .cm-save:hover { background: #c92a21; }
+
+  .bulk-section {
+    margin-top: 20px;
+    border-top: 1px solid #2d3548;
+    padding-top: 20px;
+  }
+
+  .bulk-toggle {
+    background: none;
+    border: none;
+    color: #e63329;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bulk-toggle:hover { color: #f25650; }
+
+  .bulk-toggle .arrow {
+    transition: transform 0.2s;
+    font-size: 10px;
+  }
+
+  .bulk-toggle .arrow.open { transform: rotate(90deg); }
+
+  .bulk-content {
+    display: none;
+    margin-top: 16px;
+  }
+
+  .bulk-content.active { display: block; }
+
+  .bulk-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+  }
+
+  .bulk-tab {
+    padding: 8px 16px;
+    background: #0f1117;
+    border: 1px solid #2d3548;
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .bulk-tab:first-child { border-radius: 6px 0 0 6px; }
+  .bulk-tab:last-child { border-radius: 0 6px 6px 0; }
+  .bulk-tab.active { background: #2d3548; color: #e2e8f0; }
+
+  .bulk-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px 14px;
+    background: #0f1117;
+    border: 1px solid #2d3548;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  .bulk-textarea:focus {
+    outline: none;
+    border-color: #e63329;
+  }
+
+  .bulk-textarea::placeholder { color: #4a5568; }
+
+  .bulk-hint {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+    margin-bottom: 12px;
+  }
+
+  .bulk-file-row {
+    display: none;
+  }
+
+  .bulk-file-row.active { display: flex; gap: 12px; align-items: center; }
+
+  .bulk-file-input {
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  .bulk-file-input::file-selector-button {
+    padding: 8px 16px;
+    background: #2d3548;
+    border: 1px solid #3b4560;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-right: 10px;
+  }
+
+  .bulk-file-input::file-selector-button:hover { background: #3b4560; }
+
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+  }
+
+  .mode-btn {
+    padding: 10px 24px;
+    background: #0f1117;
+    border: 1px solid #2d3548;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .mode-btn:first-child { border-radius: 8px 0 0 8px; }
+  .mode-btn:last-child { border-radius: 0 8px 8px 0; }
+
+  .mode-btn.active {
+    background: #e63329;
+    border-color: #e63329;
+    color: white;
+  }
+
+  .mode-btn:not(.active):hover {
+    background: #1e2433;
+    color: #e2e8f0;
+  }
+
+  .error-msg {
+    background: #2d1b1b;
+    border: 1px solid #5c2626;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #fca5a5;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .error-msg.active { display: block; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+  }
+
+  .empty-state svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .discover-btn {
+    background: none;
+    border: 1px dashed #e63329;
+    color: #e63329;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .discover-btn:hover {
+    background: rgba(230, 51, 41, 0.1);
+  }
+
+  .discover-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .header { padding: 16px 20px; flex-direction: column; gap: 12px; }
+    .container { padding: 20px; }
+    .input-row { flex-direction: column; }
+    .input-row select { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Password Screen -->
+<div id="passwordScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="text-align:center;">
+    <div style="width:48px;height:48px;background:#e63329;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:white;margin:0 auto 16px;">P</div>
+    <h2 style="color:#f1f5f9;font-size:20px;margin-bottom:6px;">Academic Ranker</h2>
+    <p style="color:#94a3b8;font-size:13px;margin-bottom:24px;">Enter password to continue</p>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <input type="password" id="passwordInput" placeholder="Password" style="padding:10px 14px;background:#1a1f2e;border:1px solid #2d3548;border-radius:8px;color:#e2e8f0;font-size:14px;font-family:inherit;width:200px;" />
+      <button onclick="checkPassword()" style="padding:10px 20px;background:#e63329;border:none;border-radius:8px;color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Enter</button>
+    </div>
+    <p id="passwordError" style="color:#ef4444;font-size:13px;margin-top:10px;display:none;">Incorrect password</p>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+<div class="header">
+  <div class="header-left">
+    <div class="logo">P</div>
+    <h1>Academic Ranker <span>by Pillar VC</span></h1>
+  </div>
+</div>
+
+<div class="chat-bar">
+  <span class="chat-icon">&#x1F50D;</span>
+  <textarea class="chat-input" id="chatInput" rows="1" placeholder="Search for people or ask about your results..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+  <button class="chat-send" id="chatSendBtn" onclick="sendChat()">Search</button>
+  <button class="chat-clear" id="chatClearBtn" onclick="clearChat()" style="display:none;" title="Clear">&#x2715;</button>
+</div>
+<div style="text-align:center; color:#666; font-size:12px; margin-top:-6px; margin-bottom:8px; padding:0 20px;">Search for new people — e.g. "find professors working on robotics" or "show me PhD students publishing on LLMs." You can also ask questions about results already on the page.</div>
+<div class="chat-response" id="chatResponse"></div>
+
+<div class="container">
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="input-section">
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeProfessor" onclick="switchMode('professor')">Professors</button>
+      <button class="mode-btn" id="modeStudent" onclick="switchMode('student')">PhD Students</button>
+    </div>
+    <h2 id="inputTitle">Add Professors to Evaluate</h2>
+    <p id="inputDescription">Enter professor names from MIT (EECS/CSAIL) or Harvard (SEAS). Each professor will be scored on theme alignment, commercial track record, and translation appetite.</p>
+
+    <div class="professor-tags" id="professorTags"></div>
+
+    <div class="input-row">
+      <input type="text" name="name" id="profName" placeholder="Name (e.g., Daniela Rus)" />
+      <select id="profUniversity">
+        <option value="MIT">MIT</option>
+        <option value="Harvard">Harvard</option>
+      </select>
+      <input type="text" name="email" id="profEmail" placeholder="Email (optional override)" />
+      <input type="text" name="researchpage" id="profResearch" placeholder="Research page URL (optional override)" />
+      <input type="text" name="advisor" id="profAdvisor" placeholder="Advisor (optional)" style="display:none;" />
+      <button class="btn btn-add" onclick="addProfessor()">+ Add</button>
+    </div>
+
+    <div class="bulk-section">
+      <button class="bulk-toggle" onclick="toggleBulk()">
+        <span class="arrow" id="bulkArrow">&#9654;</span> <span id="bulkToggleLabel">Bulk add professors</span>
+      </button>
+      <div class="bulk-content" id="bulkContent">
+        <div class="bulk-tabs">
+          <button class="bulk-tab active" onclick="switchBulkTab('paste', this)">Paste names</button>
+          <button class="bulk-tab" onclick="switchBulkTab('csv', this)">Upload CSV</button>
+        </div>
+
+        <div id="bulkPasteSection">
+          <textarea class="bulk-textarea" id="bulkTextarea" placeholder="Paste professor names, one per line. You can optionally add university separated by a comma:
+
+Daniela Rus, MIT
+George Church, Harvard
+Ed Boyden, MIT"></textarea>
+          <div class="bulk-hint">One professor per line. Format: <strong>Name, University</strong>. Email and research page URL can be added via CSV upload. We recommend uploading no more than 20 names at a time.</div>
+          <button class="btn btn-add" onclick="bulkAddFromText()">Add All</button>
+        </div>
+
+        <div id="bulkCsvSection" class="bulk-file-row">
+          <input type="file" accept=".csv,.xlsx,.xls,.tsv" class="bulk-file-input" id="bulkFileInput" onchange="bulkAddFromFile(this)" />
+          <div class="bulk-hint" style="margin-top:0">CSV with columns: <strong>Name</strong>, <strong>University</strong>, <strong>Email</strong> (optional override), <strong>Research Page</strong> (optional override), <strong>Advisor</strong> (optional, student mode). Headers expected in first row. We recommend uploading no more than 20 names at a time.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 20px;">
+      <button class="btn btn-primary" id="rankBtn" onclick="runRanking()" disabled><span id="rankBtnLabel">Rank Professors</span></button>
+      <button class="discover-btn" id="discoverBtn" onclick="runDiscovery()"><span id="discoverBtnLabel">&#x1F50D; Discover Top Picks</span></button>
+      <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+      <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="progress-section" id="progressSection">
+    <div class="progress-bar-container">
+      <div class="progress-text">Evaluating <span id="progressName">...</span> (<span id="progressCount">0</span>/<span id="progressTotal">0</span>)</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-section" id="resultsSection">
+    <div class="results-header" style="display:flex; align-items:center; gap:12px;">
+      <h2 style="margin:0;">Rankings</h2>
+      <span id="silencedBadge" style="display:none; background:#555; color:#aaa; font-size:12px; padding:2px 8px; border-radius:10px; cursor:pointer;" onclick="showSilencedManager()"></span>
+    </div>
+    <div id="resultsBody" class="cards-grid"></div>
+  </div>
+</div>
+</div> <!-- end appContent -->
+
+<script>
+function checkPassword() {
+  const input = document.getElementById('passwordInput').value;
+  if (input === 'campus') {
+    document.getElementById('passwordScreen').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+  } else {
+    document.getElementById('passwordError').style.display = 'block';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').focus();
+  }
+}
+document.getElementById('passwordInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkPassword();
+});
+
+const API_KEY = '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';
+
+let currentMode = 'professor';
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeProfessor').classList.toggle('active', mode === 'professor');
+  document.getElementById('modeStudent').classList.toggle('active', mode === 'student');
+
+  const label = mode === 'professor' ? 'Professors' : 'PhD Students';
+  const labelSingular = mode === 'professor' ? 'professor' : 'PhD student';
+
+  document.getElementById('inputTitle').textContent = `Add ${label} to Evaluate`;
+  document.getElementById('inputDescription').textContent = mode === 'professor'
+    ? 'Enter professor names from MIT (EECS/CSAIL) or Harvard (SEAS). Each professor will be scored on theme alignment, commercial track record, and translation appetite.'
+    : 'Enter PhD student names from MIT (EECS/CSAIL) or Harvard (SEAS). Each student will be scored on theme alignment, applied nature of research, and citation strength.';
+  document.getElementById('profName').placeholder = mode === 'professor' ? 'Name (e.g., Daniela Rus)' : 'Name (e.g., Jane Smith)';
+  document.getElementById('bulkToggleLabel').textContent = `Bulk add ${label.toLowerCase()}`;
+  document.getElementById('rankBtnLabel').textContent = `Rank ${label}`;
+  document.getElementById('profAdvisor').style.display = mode === 'student' ? '' : 'none';
+
+  // Clear current list when switching modes
+  professors = [];
+  results = [];
+  hasDiscoveryResults = false;
+  renderTags();
+  document.getElementById('rankBtn').disabled = true;
+  document.getElementById('resultsSection').classList.remove('active');
+}
+
+const PROFESSOR_SYSTEM_PROMPT = `You are an expert venture capital analyst specializing in university spinouts and deep tech commercialization. You work for Pillar VC, a Boston-based venture capital firm that invests in scientific breakthroughs.
+
+## Pillar VC Investment Themes
+
+Pillar VC focuses on the following areas. Use these to evaluate THEME ALIGNMENT:
+
+1. **AI for Science** — AI/ML applied to drug discovery, materials science, protein design, biological systems.
+2. **Biotech & Life Sciences** — Therapeutics, synthetic biology, sustainable bio-manufacturing, precision medicine.
+3. **Enterprise Software / B2B SaaS** — Developer tools, infrastructure software, AI inference optimization, data platforms.
+4. **Chips & Semiconductors** — Hardware acceleration, novel compute architectures, chip design, quantum computing hardware.
+5. **Robotics & Autonomous Systems** — Manufacturing automation, intelligent robotic systems, autonomous vehicles/drones.
+6. **Infrastructure & Energy** — Resilient energy systems, advanced manufacturing, transportation infrastructure, climate tech.
+7. **Advanced Materials & Manufacturing** — Novel materials, additive manufacturing, nanotechnology with commercial applications.
+
+Key context: Pillar VC has invested in 90+ companies, 50%+ with university roots. They invest from pre-seed through Series A, with average checks of $2.5M. They especially value research that is on a clear path to commercialization.
+
+## Target Departments
+- **MIT**: EECS and CSAIL are the primary departments of interest.
+- **Harvard**: SEAS (School of Engineering and Applied Sciences) is the primary department of interest.
+
+## Consequence Score Calibration (from Pillar's actual meetings)
+Pillar has met these people and scored them. Use this to calibrate your scoring — recommend/score people who resemble the 8-10s, not the 1-3s.
+
+### Score 10/10 — IDEAL fits (systems builders, commercial track records, applied):
+- Armando Solar-Lezama: programming languages, program synthesis, AI-assisted coding
+- Dina Katabi: wireless AI, health monitoring — founded Emerald Innovations
+- Tim Kraska: learned indexes, database systems — co-founded Einblick Analytics
+- Pulkit Agrawal: robotics, manipulation, embodied AI — builds real systems
+- Song Han: efficient ML, model compression — direct industry applications
+- Devavrat Shah: ML systems, causal inference — co-founded Ikigai Labs
+- Yoon Kim: NLP, language models, efficient transformers
+- Jacob Andreas: language grounding, compositional learning
+- Nir Shavit: concurrent computing, connectomics — co-founded Cortica
+- Mohammad Alizadeh: networks, ML for systems — co-founded Vatic Labs
+- Hari Balakrishnan: networked systems — co-founded Cambridge Mobile Telematics
+- Sertac Karaman: autonomous systems, motion planning — founded companies
+- Rama Ramakrishnan: applied ML, retail analytics
+- Samuel Madden: database systems — co-founded multiple startups
+- Joseph Jacobson: synthetic biology, nanofabrication — serial entrepreneur
+- Shafi Goldwasser: cryptography — Turing Award, co-founded Duality Technologies
+
+### Score 9/10:
+- Russ Tedrake: robotics, control, simulation — built Drake, led Toyota Research
+- Ferdinand Kossmann: database systems, query optimization
+- Mingda Li: quantum materials, AI for materials discovery
+
+### Score 8-8.3/10:
+- Ju Li: energy materials, batteries, computational materials
+- Marin Soljacic: photonics, wireless energy — founded WiTricity
+- Saman Amarasinghe: compilers, parallel computing — systems builder
+- Jeffrey Grossman: computational materials, energy, water
+- Phillip Isola: computer vision, generative models — builds tools
+- Manya Ghobadi: optical networks, ML for networking
+- Safwan Hossain, Robert Wood, Jessy Han, Matthew Russo, Antonio Torralba
+
+### Score 5-7 — mediocre fits:
+- Una O'Reilly (7), Anantha Chandrakasan (7), Marzyeh Ghassemi (7), Fadel Adib (7)
+- Claudio Verdun (6), Omar Khattab (6), Haihao Lu (6)
+- Qinmin Zheng (5), Daniel Jackson (5), Nada Amin (5)
+
+### Score 1-3 — POOR fits (too theoretical, academic-only, not aligned):
+- Stefanie Jegelka (1), Frans Kaashoek (1), Wojciech Matusik (1), Tommi Jaakkola (1)
+- Ramesh Raskar (1), Anant Agarwal (1), Dylan Hadfield-Menell (1), Asu Ozdaglar (1)
+- Adam Chlipala (1), Eugene Fitzgerald (1), Alexander Slocum (1), Michael Carbin (1)
+- Kalyan Veeramachaneni (1), Peter Baile Chen (1), Muyang Li (1)
+- Qinghao Hu (2), Charles Lu (3.7), Cai Zhou (3), Vivek Gopalakrishnan (3), Shang Yang (3)
+
+**Pattern**: Pillar values people who BUILD SYSTEMS/TOOLS with product potential and have commercial activity. Pure theorists, policy researchers, and those without commercialization signals score poorly regardless of prestige.
+
+## Scoring Dimensions (1-10 scale)
+
+### 1. Theme Alignment (1-10)
+How well does their research align with Pillar's investment themes?
+- 9-10: Direct match to a core theme with breakthrough potential
+- 7-8: Strong alignment with one or more themes
+- 5-6: Moderate alignment
+- 3-4: Tangential connection
+- 1-2: No meaningful connection
+
+### 2. Commercial Track Record (1-10)
+Evidence of previous success translating research into commercial outcomes.
+- 9-10: Founded multiple successful companies, major licensing deals
+- 7-8: Founded at least one company or significant patent portfolio
+- 5-6: Some patents, advisory roles, or industry partnerships
+- 3-4: Primarily academic, minimal commercial activity
+- 1-2: No commercial activity
+
+### 3. Translation Appetite (1-10)
+Current signals of desire to commercialize research.
+- 9-10: Currently starting a company, recently filed key patents, actively seeking industry partners
+- 7-8: Recent patent filings, active industry collaborations
+- 5-6: Some industry engagement
+- 3-4: Primarily focused on publications
+- 1-2: Explicitly academic-only
+
+## Output Requirements
+In addition to scores, you must provide:
+1. **Email**: Find the professor's institutional email address (check their lab page, university directory).
+2. **Research Page URL**: Find the URL of their personal research/lab page on the university website.
+3. **CRM Overview**: 2-3 concise sentences — who they are, what they work on, and why Pillar should care. Keep it tight.
+4. **Outreach Brief**: 1 sentence — a specific hook Jamie/Parker can reference in a cold email.
+
+## Important Notes
+- Be calibrated and honest. Not every professor is a 9. Use the full 1-10 range.
+- Base your assessment on actual research, publications, patents, and commercial activities.
+- If uncertain, note it in your rationale and score conservatively.
+- The total score is the sum of all three dimensions (max 30).`;
+
+const STUDENT_SYSTEM_PROMPT = `You are an expert venture capital analyst specializing in university spinouts and deep tech commercialization. You work for Pillar VC, a Boston-based venture capital firm that invests in scientific breakthroughs.
+
+## Pillar VC Investment Themes
+
+Pillar VC focuses on the following areas. Use these to evaluate THEME ALIGNMENT:
+
+1. **AI for Science** — AI/ML applied to drug discovery, materials science, protein design, biological systems.
+2. **Biotech & Life Sciences** — Therapeutics, synthetic biology, sustainable bio-manufacturing, precision medicine.
+3. **Enterprise Software / B2B SaaS** — Developer tools, infrastructure software, AI inference optimization, data platforms.
+4. **Chips & Semiconductors** — Hardware acceleration, novel compute architectures, chip design, quantum computing hardware.
+5. **Robotics & Autonomous Systems** — Manufacturing automation, intelligent robotic systems, autonomous vehicles/drones.
+6. **Infrastructure & Energy** — Resilient energy systems, advanced manufacturing, transportation infrastructure, climate tech.
+7. **Advanced Materials & Manufacturing** — Novel materials, additive manufacturing, nanotechnology with commercial applications.
+
+Key context: Pillar VC has invested in 90+ companies, 50%+ with university roots. They invest from pre-seed through Series A, with average checks of $2.5M. They especially value research that is on a clear path to commercialization. Pillar actively engages with PhD students whose research could become the foundation for a venture-backed company.
+
+## Target Departments
+- **MIT**: EECS and CSAIL are the primary departments of interest.
+- **Harvard**: SEAS (School of Engineering and Applied Sciences) is the primary department of interest.
+
+## Consequence Score Calibration (from Pillar's actual meetings)
+Pillar has met these people and scored them. Students from labs led by high-scoring faculty are more likely to be good fits.
+
+### Students — Score 8-9/10 (GREAT fits):
+- Safwan Hossain (8): AI safety, multi-agent systems — applied research
+- Ferdinand Kossmann (9): learned database systems, ML for systems — works with Tim Kraska
+- Matthew Russo (8): soft robotics, metamaterials — builds real systems
+- Jessy Han (8): AI for materials science, automated materials discovery
+
+### Students — Score 1-4 (POOR fits):
+- Charles Lu (3.7), Cai Zhou (3), Vivek Gopalakrishnan (3), Shang Yang (3): too junior or theoretical
+- Qinghao Hu (2): ML systems — too junior, limited track record
+- Zachary Smith (1), Zhuoyang Zhang (1), Zhekai Zhang (1): not aligned
+
+### Faculty calibration (score their students similarly to the faculty):
+- Score 10 faculty (students from these labs are higher priority): Armando Solar-Lezama, Dina Katabi, Tim Kraska, Pulkit Agrawal, Song Han, Devavrat Shah, Yoon Kim, Jacob Andreas, Nir Shavit, Mohammad Alizadeh, Hari Balakrishnan, Sertac Karaman, Samuel Madden, Joseph Jacobson
+- Score 1 faculty (students from these labs are lower priority): Stefanie Jegelka, Frans Kaashoek, Tommi Jaakkola, Dylan Hadfield-Menell, Asu Ozdaglar, Adam Chlipala, Ramesh Raskar
+
+**Pattern**: Pillar values students who BUILD SYSTEMS/TOOLS, work in applied areas, and have advisors with strong commercial track records. Avoid pure theorists and those without applied signals.
+
+## Scoring Context for PhD Students
+
+You are scoring PhD STUDENTS, not professors. Adjust your expectations accordingly:
+- PhD students will have fewer publications than professors. That is expected.
+- For Applied Nature, focus on whether their research builds tangible systems, tools, platforms, or prototypes vs. purely theoretical contributions. Applied research with clear real-world use cases scores higher.
+- For Citation Strength, look at their Google Scholar profile: total citations, h-index, i10-index, and whether key papers have strong citation counts relative to their career stage. A PhD student with 500+ citations is strong; 1000+ is exceptional.
+
+## Scoring Dimensions (1-10 scale)
+
+### 1. Theme Alignment (1-10)
+How well does their research align with Pillar's investment themes?
+- 9-10: Direct match to a core theme with breakthrough potential
+- 7-8: Strong alignment with one or more themes
+- 5-6: Moderate alignment
+- 3-4: Tangential connection
+- 1-2: No meaningful connection
+
+### 2. Applied Nature of Research (1-10)
+How applied vs. theoretical is their work? Pillar favors research closer to real-world deployment.
+- 9-10: Building working systems, tools, or platforms with clear commercial applications; demo-ready prototypes
+- 7-8: Strong applied component — benchmarks on real-world data, open-source tools with users, industry collaborations
+- 5-6: Mix of applied and theoretical — some practical applications but primarily academic framing
+- 3-4: Mostly theoretical with limited practical application in the near term
+- 1-2: Purely theoretical or mathematical with no clear path to application
+
+### 3. Citation Strength (1-10)
+Strength of their Google Scholar citations relative to career stage (PhD student).
+- 9-10: Exceptional — 2000+ citations, h-index 15+, first-authored papers with 500+ citations, or a breakout paper
+- 7-8: Strong — 500-2000 citations, h-index 8-15, multiple well-cited first-author papers
+- 5-6: Solid — 100-500 citations, h-index 4-8, some papers gaining traction
+- 3-4: Early stage — under 100 citations, h-index under 4, limited but growing
+- 1-2: Minimal — very few or no citations, no Google Scholar presence
+
+## Important Notes
+- Be calibrated and honest. Base your assessment on what you know about the student's actual research, publications, advisor, and applied signals.
+- If you are uncertain about a student, note that uncertainty in your rationale and score conservatively.
+- The total score is the sum of all three dimensions (max 30).
+- **ALWAYS identify the student's advisor/PI.** Check their university profile page, lab website, Google Scholar profile (look at co-author patterns, "supervised by" fields, or the lab group page), and recent publications (the senior/last author is typically the advisor). The advisor is critical information for scoring and outreach.
+- **Find the student's expected graduation date** when possible. Check their university profile, CV, personal website, or LinkedIn for expected defense date, graduation year, or program start year (PhD programs are typically 5-6 years). This helps Pillar time their outreach.
+
+## Priority Advisor Labs
+Students coming out of the following professors' labs should receive a meaningful boost (+1 to +2 points) on Theme Alignment. These advisors have strong applied research track records and deep alignment with Pillar's thesis:
+
+- **Yoon Kim** (MIT CSAIL) — NLP, language models, efficient transformers
+- **Jacob Andreas** (MIT CSAIL) — NLP, language grounding, language models
+- **Samuel Madden** (MIT CSAIL) — Databases, big data systems, multiple startups
+- **Phillip Isola** (MIT CSAIL) — Computer vision, generative models, self-supervised learning
+- **Michael Cafarella** (MIT CSAIL) — Data management, information extraction, co-created Apache Nutch
+- **Kaiming He** (MIT EECS) — Deep learning architectures, computer vision (ResNet, Mask R-CNN)
+- **Tim Kraska** (MIT CSAIL) — Learned systems, AI for databases, co-founded Einblick Analytics
+
+A PhD student working in one of these labs automatically has stronger theme alignment (their advisor's research is a direct Pillar match) and likely stronger applied research (these advisors emphasize building systems and tools, not just theory).`;
+
+function getSystemPrompt() {
+  return currentMode === 'professor' ? PROFESSOR_SYSTEM_PROMPT : STUDENT_SYSTEM_PROMPT;
+}
+
+let professors = [];
+let results = [];
+let hasDiscoveryResults = false;
+
+// --- Seed mute list (one-time, merges with existing) ---
+(function seedMuteList() {
+  const SEED_KEY = 'pillar_mute_seed_v1';
+  if (localStorage.getItem(SEED_KEY)) return; // already seeded
+  const names = ["una o'reilly","claudio verdun","safwan hossain","robert wood","milind tambe","sham kakade","martin wattenberg","robert morris","david sontag","marin soljacic","chris moses","saman amarasinghe","stefanie jegelka","tamara broderick","dirk englund","dave perreault","mengjia yan","christina delimitrou","qinmin zheng","daniel jackson","armando solar-lezama","charles lu","cai zhou","vivek gopalakrishnan","shang yang","omar khattab","qinghao hu","haihao lu","ziniu wu","jessy han","joseph jacobson","shafi goldwasser","john hart","antonio torralba","jeffrey grossman","dina katabi","samuel madden","phillip isola","pulkit agrawal","song han","devavrat shah","yoon kim","jacob andreas","kevin power","ed boyden","fadel adib","matthew russo","jeremy flint","anantha chandrakasan","ferdinand kossmann","mingda li","nir shavit","skylar tibbits","tim kraska","russ tedrake","mohammad alizadeh","ed adelson","kalyan veeramachaneni","frans kaashoek","wojciech matusik","alexander slocum","tommi jaakkola","ramesh raskar","eugene fitzgerald","michael carbin","peter baile chen","muyang li","vivienne sze","arvind satyanarayan","alexandre amice","ian hunter","evelyn wang","vinod vaikuntanathan","shannon shen","eugenie lai","morris yau","kaiwen zha","kevin chen","suraj cheema","constantinos daskalakis","martin wainwright","fisher xue","daniel sanchez","julian shun","adam belay","daniela rus","vladimir bulovic","shivam duggal","piotr indyk","tomas palacios","kaiming he","zoe matilde de simone","regina barzilay","shobhita sundaram","cathy wu","caroline uhler","charles leiserson","fredo durand","ankur moitra","amin nobari","rui zhou","nicholas usher","jonathan kelner","stefanie mueller","luca carlone","justin solomon","martin rinard","srini devadas","vincent sitzmann","david karger","yury polyanskiy","jonathan ragan-kelley","yoel fink","faez ahmed","artem lukoianov","hari balakrishnan","marzyeh ghassemi","ju li","rama ramakrishnan","sertac karaman","brian williams","nada amin","manya ghobadi","dong won lee","martin culpepper","anant agarwal","dylan hadfield-menell","asu ozdaglar","adam chlipala","zhuoyang zhang","zhekai zhang","zachary smith","pablo parrilo","brendt simpson","matthew werner","dhinesh ganapathiappan","austin johnk","jase auby","anne-marie fink","hailey liu","zih-sing fu","jenny huang"];
+  const existing = JSON.parse(localStorage.getItem('pillar_silenced') || '{}');
+  const now = Date.now();
+  names.forEach(n => { if (!existing[n]) existing[n] = now; });
+  localStorage.setItem('pillar_silenced', JSON.stringify(existing));
+  localStorage.setItem(SEED_KEY, 'done');
+})();
+
+// --- Silence list (90-day expiry, stored in localStorage) ---
+const MUTE_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
+function getSilencedList() {
+  try {
+    const raw = localStorage.getItem('pillar_silenced') || '{}';
+    const list = JSON.parse(raw);
+    const now = Date.now();
+    // Prune expired entries
+    let changed = false;
+    for (const key of Object.keys(list)) {
+      if (now - list[key] > MUTE_DURATION_MS) { delete list[key]; changed = true; }
+    }
+    if (changed) localStorage.setItem('pillar_silenced', JSON.stringify(list));
+    return list;
+  } catch { return {}; }
+}
+
+function silencePerson(name) {
+  const list = getSilencedList();
+  list[name.toLowerCase().trim()] = Date.now();
+  localStorage.setItem('pillar_silenced', JSON.stringify(list));
+  renderResults();
+  updateSilencedBadge();
+}
+
+function unsilencePerson(name) {
+  const list = getSilencedList();
+  delete list[name.toLowerCase().trim()];
+  localStorage.setItem('pillar_silenced', JSON.stringify(list));
+  updateSilencedBadge();
+}
+
+function isPersonSilenced(name) {
+  const list = getSilencedList();
+  return !!list[name.toLowerCase().trim()];
+}
+
+function getSilencedNames() {
+  return Object.keys(getSilencedList());
+}
+
+function updateSilencedBadge() {
+  const names = getSilencedNames();
+  const badge = document.getElementById('silencedBadge');
+  if (badge) {
+    badge.style.display = names.length > 0 ? 'inline' : 'none';
+    badge.textContent = `${names.length} muted`;
+  }
+}
+
+function showSilencedManager() {
+  const names = getSilencedNames();
+  if (names.length === 0) { alert('No muted people.'); return; }
+  const list = getSilencedList();
+  let msg = 'Muted people:\n\n';
+  names.forEach(n => {
+    const daysLeft = Math.ceil((MUTE_DURATION_MS - (Date.now() - list[n])) / (24*60*60*1000));
+    msg += `• ${n} (${daysLeft} days remaining)\n`;
+  });
+  const unmuteName = prompt(msg + '\nType a name to unmute (or cancel):');
+  if (unmuteName && unmuteName.trim()) {
+    const key = unmuteName.trim().toLowerCase();
+    if (list[key]) { unsilencePerson(unmuteName.trim()); renderResults(); alert(`${unmuteName.trim()} unmuted.`); }
+    else { alert('Name not found in mute list.'); }
+  }
+}
+
+// --- Discovery feedback (thumbs up/down, stored in localStorage) ---
+function getFeedbackList() {
+  try {
+    return JSON.parse(localStorage.getItem('pillar_feedback') || '{}');
+  } catch { return {}; }
+}
+
+function getFeedback(name) {
+  const list = getFeedbackList();
+  const entry = list[name.toLowerCase().trim()];
+  return entry ? entry.vote : null;
+}
+
+function getFeedbackExamples() {
+  const list = getFeedbackList();
+  const good = [];
+  const bad = [];
+  for (const entry of Object.values(list)) {
+    if (entry.vote === 'up') good.push(entry);
+    else if (entry.vote === 'down') bad.push(entry);
+  }
+  return { good, bad };
+}
+
+// --- AI Chat Bar ---
+function isSearchQuery(question) {
+  const q = question.toLowerCase();
+  const searchPatterns = [
+    /\b(find|show|search|discover|look for|who (works|is working|has published|researches|studies|focuses))\b/,
+    /\b(people|professors?|faculty|students?|researchers?|PhDs?)\b.*\b(who|that|working on|in the area|published|studying)\b/,
+    /\b(recommend|suggest|surface|identify)\b.*\b(people|professors?|faculty|students?)\b/,
+    /\b(any(one|body)|who('s| is| are))\b.*\b(working|researching|publishing|building|doing)\b/,
+    /\bwho\b.*\b(at MIT|at Harvard|in CSAIL|in EECS|in SEAS)\b/
+  ];
+  return searchPatterns.some(p => p.test(q));
+}
+
+async function runChatDiscovery(question) {
+  const entityType = currentMode === 'professor' ? 'professors' : 'PhD students';
+  const deptContext = 'MIT (EECS, CSAIL) and Harvard (SEAS)';
+
+  const existingNames = professors.map(p => p.name).concat(results.map(r => r.name));
+  const silencedNames = getSilencedNames();
+  const allExcluded = [...new Set([...existingNames, ...silencedNames])].filter(n => n);
+  const excludeClause = allExcluded.length > 0
+    ? `\n\nDo NOT recommend any of these people (already evaluated or silenced): ${allExcluded.join(', ')}`
+    : '';
+
+  const { good, bad } = getFeedbackExamples();
+  let feedbackClause = '';
+  if (good.length > 0 || bad.length > 0) {
+    feedbackClause = '\n\n## Calibration from User Feedback';
+    if (good.length > 0) {
+      feedbackClause += '\n**GOOD matches:** ';
+      good.forEach(g => { feedbackClause += `\n- ${g.name} (${g.university}) — ${g.areas}${g.comment ? ` — "${g.comment}"` : ''}`; });
+    }
+    if (bad.length > 0) {
+      feedbackClause += '\n**POOR matches:** ';
+      bad.forEach(b => { feedbackClause += `\n- ${b.name} (${b.university}) — ${b.areas}${b.comment ? ` — "${b.comment}"` : ''}`; });
+    }
+  }
+
+  const searchPrompt = `The user is searching for specific ${entityType} at ${deptContext}. Their query: "${question}"
+
+Find ${entityType} who match this specific request. Only include people CURRENTLY at MIT or Harvard.
+${excludeClause}${feedbackClause}
+
+Return a JSON array of up to 5 objects with these fields:
+- "name": full name
+- "university": "MIT" or "Harvard"${currentMode === 'student' ? `
+- "advisor": their PhD advisor
+- "graduation_date": expected graduation (or empty string)` : ''}
+- "email": institutional email (or empty string)
+- "research_page": URL (or empty string)
+- "google_scholar": Google Scholar URL (or empty string)
+- "theme_alignment": integer 1-10
+${currentMode === 'professor'
+  ? `- "commercial_track_record": integer 1-10
+- "translation_appetite": integer 1-10`
+  : `- "applied_research": integer 1-10
+- "citation_strength": integer 1-10`}
+- "total_score": sum of the three scores
+- "key_research_areas": comma-separated list
+- "commercialization_signals": brief list of recent signals
+${currentMode === 'professor' ? `- "similar_faculty": 2-3 similar faculty at other universities` : ''}
+- "crm_overview": 2-3 concise sentences
+- "outreach_brief": 1 sentence hook for a cold email
+
+Sort by relevance to the user's query first, then by total score. Return ONLY the JSON array.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 8192,
+      system: getSystemPrompt(),
+      messages: [{ role: 'user', content: searchPrompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error(`API error ${response.status}`);
+  const data = await response.json();
+  let text = data.content[0].text.trim();
+  if (text.startsWith('```')) {
+    const lines = text.split('\n');
+    text = lines.slice(1, -1).join('\n');
+  }
+
+  let newResults = JSON.parse(text);
+  const currentSilenced = getSilencedNames().map(n => n.toLowerCase());
+  newResults = newResults.filter(d => !currentSilenced.includes(d.name.toLowerCase().trim()));
+
+  newResults.forEach(d => {
+    if (currentMode === 'student') {
+      d.applied_research = d.applied_research || 0;
+      d.citation_strength = d.citation_strength || 0;
+      d.total_score = d.theme_alignment + d.applied_research + d.citation_strength;
+    } else {
+      d.total_score = d.theme_alignment + (d.commercial_track_record || 0) + (d.translation_appetite || 0);
+    }
+    d.email = d.email || ''; d.research_page = d.research_page || '';
+    d.google_scholar = d.google_scholar || ''; d.advisor = d.advisor || '';
+    d.graduation_date = d.graduation_date || ''; d.similar_faculty = d.similar_faculty || '';
+    d.commercialization_signals = d.commercialization_signals || '';
+    d.crm_overview = d.crm_overview || ''; d.outreach_brief = d.outreach_brief || '';
+  });
+
+  newResults.sort((a, b) => b.total_score - a.total_score);
+  hasDiscoveryResults = true;
+  let added = 0;
+  for (const d of newResults) {
+    const exists = results.some(r => r.name.toLowerCase() === d.name.toLowerCase());
+    if (!exists) { results.push(d); added++; }
+  }
+  results.sort((a, b) => b.total_score - a.total_score);
+  renderResults();
+  return added;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('chatSendBtn');
+  const resp = document.getElementById('chatResponse');
+  const clearBtn = document.getElementById('chatClearBtn');
+  const question = input.value.trim();
+  if (!question) return;
+
+  btn.disabled = true;
+  clearBtn.style.display = 'inline';
+
+  const isSearch = isSearchQuery(question);
+
+  if (isSearch) {
+    btn.textContent = 'Searching...';
+    resp.className = 'chat-response active loading';
+    resp.textContent = 'Searching for people...';
+
+    try {
+      const added = await runChatDiscovery(question);
+      resp.className = 'chat-response active';
+      resp.textContent = added > 0
+        ? `Found ${added} new result${added > 1 ? 's' : ''} matching your query. See the cards below.`
+        : 'No new people found matching that query (they may already be in your results or muted).';
+    } catch (err) {
+      resp.className = 'chat-response active';
+      resp.textContent = 'Search failed: ' + err.message;
+    }
+  } else {
+    btn.textContent = 'Thinking...';
+    resp.className = 'chat-response active loading';
+    resp.textContent = 'Thinking...';
+
+    let context = `Current mode: ${currentMode}. `;
+    if (results.length > 0) {
+      context += `${results.length} ranked results:\n`;
+      results.forEach((r, i) => {
+        const scores = currentMode === 'student'
+          ? `Theme:${r.theme_alignment} Applied:${r.applied_research} Citations:${r.citation_strength} Total:${r.total_score}`
+          : `Theme:${r.theme_alignment} Commercial:${r.commercial_track_record} Translation:${r.translation_appetite} Total:${r.total_score}`;
+        let line = `${i+1}. ${r.name} (${r.university}) — ${scores} — Areas: ${r.key_research_areas}`;
+        if (currentMode === 'student' && r.advisor) line += ` — Advisor: ${r.advisor}`;
+        if (r.graduation_date) line += ` — Grad: ${r.graduation_date}`;
+        context += line + '\n';
+      });
+    } else {
+      context += 'No results yet.';
+    }
+
+    const { good, bad } = getFeedbackExamples();
+    if (good.length > 0) context += '\nTeam thumbs-up: ' + good.map(g => `${g.name}${g.comment ? ' ("' + g.comment + '")' : ''}`).join(', ');
+    if (bad.length > 0) context += '\nTeam thumbs-down: ' + bad.map(b => `${b.name}${b.comment ? ' ("' + b.comment + '")' : ''}`).join(', ');
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 1024,
+          system: `You are a helpful assistant for Pillar VC's Academic Ranker tool. You help analyze professors and PhD students at MIT and Harvard for venture relevance. Answer questions concisely based on the data provided. If the user seems to be asking you to FIND or SEARCH for people, let them know you can do that — they should phrase it as "find me..." or "show me..." to trigger a search.\n\nCurrent data:\n${context}`,
+          messages: [{ role: 'user', content: question }]
+        })
+      });
+
+      if (!response.ok) throw new Error(`API error ${response.status}`);
+      const data = await response.json();
+      resp.className = 'chat-response active';
+      resp.textContent = data.content[0].text;
+    } catch (err) {
+      resp.className = 'chat-response active';
+      resp.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Search';
+}
+
+function clearChat() {
+  document.getElementById('chatResponse').className = 'chat-response';
+  document.getElementById('chatResponse').textContent = '';
+  document.getElementById('chatClearBtn').style.display = 'none';
+  document.getElementById('chatInput').value = '';
+}
+
+// --- Comment Modal on Votes ---
+function showCommentModal(name, university, areas, vote) {
+  const escapedName = name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  const overlay = document.createElement('div');
+  overlay.className = 'comment-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+  const title = vote === 'down' ? 'Why not ' + name + '?' : 'Why ' + name + '?';
+  const placeholder = vote === 'down'
+    ? "e.g., 'Too theoretical', 'Not aligned with our themes', 'Already graduated'"
+    : "e.g., 'Great applied work', 'Strong citations in our space', 'Advisor has startup track record'";
+
+  overlay.innerHTML = `<div class="comment-modal">
+    <h3>${title}</h3>
+    <div class="cm-sub">Your feedback helps calibrate future recommendations</div>
+    <textarea id="commentText" placeholder="${placeholder}"></textarea>
+    <div class="cm-btns">
+      <button class="cm-skip" onclick="commitFeedback('${escapedName}','${university.replace(/'/g,"\\'")}','${areas.replace(/'/g,"\\'")}','${vote}',null);this.closest('.comment-overlay').remove();">Skip</button>
+      <button class="cm-save" onclick="commitFeedback('${escapedName}','${university.replace(/'/g,"\\'")}','${areas.replace(/'/g,"\\'")}','${vote}',document.getElementById('commentText').value);this.closest('.comment-overlay').remove();">Save</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('commentText')?.focus(), 100);
+}
+
+function commitFeedback(name, university, areas, vote, comment) {
+  const list = getFeedbackList();
+  const key = name.toLowerCase().trim();
+  if (list[key] && list[key].vote === vote && !comment) {
+    delete list[key];
+  } else {
+    list[key] = { name, university, areas, vote, ts: Date.now() };
+    if (comment && comment.trim()) list[key].comment = comment.trim();
+  }
+  localStorage.setItem('pillar_feedback', JSON.stringify(list));
+  renderResults();
+}
+
+const nameInput = document.getElementById('profName');
+nameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addProfessor();
+});
+
+function addProfessor() {
+  const name = document.getElementById('profName').value.trim();
+  const university = document.getElementById('profUniversity').value;
+  const email = document.getElementById('profEmail').value.trim();
+  const researchPage = document.getElementById('profResearch').value.trim();
+  const advisor = document.getElementById('profAdvisor').value.trim();
+
+  if (!name) return;
+
+  professors.push({ name, university, email: email || null, researchPage: researchPage || null, advisor: advisor || null });
+  renderTags();
+
+  document.getElementById('profName').value = '';
+  document.getElementById('profEmail').value = '';
+  document.getElementById('profResearch').value = '';
+  document.getElementById('profAdvisor').value = '';
+  document.getElementById('profName').focus();
+  document.getElementById('rankBtn').disabled = false;
+}
+
+function removeProfessor(idx) {
+  professors.splice(idx, 1);
+  renderTags();
+  document.getElementById('rankBtn').disabled = professors.length === 0;
+}
+
+function renderTags() {
+  const container = document.getElementById('professorTags');
+  container.innerHTML = professors.map((p, i) =>
+    `<div class="professor-tag">
+      ${p.name} <span class="univ">${p.university}</span>${p.advisor ? ` <span class="univ">· ${p.advisor}</span>` : ''}
+      <span class="remove" onclick="removeProfessor(${i})">&times;</span>
+    </div>`
+  ).join('');
+}
+
+function clearAll() {
+  professors = [];
+  results = [];
+  hasDiscoveryResults = false;
+  renderTags();
+  document.getElementById('rankBtn').disabled = true;
+  document.getElementById('resultsSection').classList.remove('active');
+  document.getElementById('progressSection').classList.remove('active');
+  document.getElementById('errorMsg').classList.remove('active');
+}
+
+function scoreClass(score) {
+  if (score >= 8) return 'score-high';
+  if (score >= 5) return 'score-mid';
+  return 'score-low';
+}
+
+function totalClass(total) {
+  if (total >= 24) return 'score-high';
+  if (total >= 18) return 'score-mid';
+  return 'score-low';
+}
+
+async function evaluateProfessor(prof) {
+  let profInfo = `${prof.name} at ${prof.university}`;
+  if (prof.advisor && currentMode === 'student') {
+    profInfo += ` (Advisor: ${prof.advisor})`;
+  }
+
+  const entityType = currentMode === 'professor' ? 'professor' : 'PhD student';
+  const studentFields = currentMode === 'student'
+    ? `\n- "advisor": the name of their PhD advisor/PI (check their university profile page, lab website, Google Scholar, or publications to determine this — this is important, try hard to find it)\n- "graduation_date": their expected or actual graduation date (e.g., "May 2026", "Spring 2027", "2025"). Check their university profile, CV, or LinkedIn. If you cannot find it, use an empty string.`
+    : '';
+  const advisorField = studentFields;
+  const userPrompt = `Please evaluate the following ${entityType} for Pillar VC relevance:
+
+**${profInfo}**
+
+Research this ${entityType} and provide your assessment. Return your response as a JSON object with exactly these fields:
+- "name": the ${entityType}'s full name
+- "university": their university${advisorField}
+- "email": their institutional email address (best guess from public sources, or empty string if unknown)
+- "research_page": URL of their research/lab page on the university website (or empty string if unknown)
+- "google_scholar": URL of their Google Scholar profile (format: https://scholar.google.com/citations?user=XXXX, or empty string if unknown)
+- "theme_alignment": integer 1-10
+${currentMode === 'professor'
+  ? `- "commercial_track_record": integer 1-10
+- "translation_appetite": integer 1-10`
+  : `- "applied_research": integer 1-10 (how applied vs. theoretical is their research — systems, tools, prototypes score higher)
+- "citation_strength": integer 1-10 (strength of Google Scholar citations relative to PhD career stage)`}
+- "total_score": sum of the three scores
+- "key_research_areas": comma-separated list of their main research areas${currentMode === 'professor' ? `
+- "similar_faculty": a comma-separated list of 2-3 other well-known faculty (at any university) whose research profile is most similar — helps Pillar quickly understand their niche` : ''}
+- "crm_overview": 2-3 concise sentences — who they are, what they work on, and why Pillar should care. Keep it tight.
+- "outreach_brief": 1 sentence — a specific hook Jamie/Parker can reference in a cold email
+
+Return ONLY the JSON object, no other text.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      system: getSystemPrompt(),
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`API error ${response.status}: ${errBody}`);
+  }
+
+  const data = await response.json();
+  let text = data.content[0].text.trim();
+
+  if (text.startsWith('```')) {
+    const lines = text.split('\n');
+    text = lines.slice(1, -1).join('\n');
+  }
+
+  const parsed = JSON.parse(text);
+  if (currentMode === 'student') {
+    parsed.applied_research = parsed.applied_research || 0;
+    parsed.citation_strength = parsed.citation_strength || 0;
+    parsed.total_score = parsed.theme_alignment + parsed.applied_research + parsed.citation_strength;
+  } else {
+    parsed.total_score = parsed.theme_alignment + parsed.commercial_track_record + parsed.translation_appetite;
+  }
+  // Prefer user-provided email/researchPage, fall back to AI-found
+  parsed.email = prof.email || parsed.email || '';
+  parsed.research_page = prof.researchPage || parsed.research_page || '';
+  parsed.google_scholar = parsed.google_scholar || '';
+  parsed.advisor = prof.advisor || parsed.advisor || '';
+  parsed.graduation_date = parsed.graduation_date || '';
+  parsed.similar_faculty = parsed.similar_faculty || '';
+  parsed.crm_overview = parsed.crm_overview || '';
+  parsed.outreach_brief = parsed.outreach_brief || '';
+  return parsed;
+}
+
+// Rate limiting: 5 requests/min = 1 every 13s (with buffer)
+const RATE_LIMIT_DELAY_MS = 13000;
+const MAX_RETRIES = 3;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function formatETA(count) {
+  const totalSeconds = Math.ceil(count * RATE_LIMIT_DELAY_MS / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  if (mins === 0) return `~${secs}s`;
+  return `~${mins}m ${secs}s`;
+}
+
+let isRanking = false;
+
+async function evaluateWithRetry(prof, attempt = 1) {
+  try {
+    return await evaluateProfessor(prof);
+  } catch (err) {
+    if (err.message.includes('429') && attempt <= MAX_RETRIES) {
+      const backoff = attempt * 15000; // 15s, 30s, 45s
+      document.getElementById('progressName').textContent = `${prof.name} (rate limited, retrying in ${backoff/1000}s...)`;
+      await sleep(backoff);
+      return evaluateWithRetry(prof, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+async function runRanking() {
+  if (professors.length === 0) {
+    showError('Add at least one professor to evaluate.');
+    return;
+  }
+
+  // Show time estimate for large batches
+  if (professors.length > 5) {
+    const eta = formatETA(professors.length);
+    if (!confirm(`You're about to rank ${professors.length} people. Due to API rate limits (5 requests/min), this will take approximately ${eta}. Continue?`)) {
+      return;
+    }
+  }
+
+  hideError();
+  isRanking = true;
+  document.getElementById('rankBtn').disabled = true;
+  document.getElementById('rankBtnLabel').textContent = 'Stop Ranking';
+  document.getElementById('rankBtn').disabled = false;
+  document.getElementById('rankBtn').onclick = stopRanking;
+
+  const progressSection = document.getElementById('progressSection');
+  progressSection.classList.add('active');
+  document.getElementById('progressTotal').textContent = professors.length;
+
+  results = [];
+
+  for (let i = 0; i < professors.length; i++) {
+    if (!isRanking) break; // user clicked stop
+
+    const prof = professors[i];
+    document.getElementById('progressName').textContent = prof.name;
+    document.getElementById('progressCount').textContent = i + 1;
+    document.getElementById('progressFill').style.width = ((i + 1) / professors.length * 100) + '%';
+
+    try {
+      const score = await evaluateWithRetry(prof);
+      results.push(score);
+    } catch (err) {
+      showError(`Failed to evaluate ${prof.name}: ${err.message}`);
+      console.error(err);
+    }
+
+    // Rate limit delay between requests (skip after the last one)
+    if (i < professors.length - 1 && isRanking) {
+      document.getElementById('progressName').textContent = `Waiting (rate limit)...`;
+      await sleep(RATE_LIMIT_DELAY_MS);
+    }
+  }
+
+  results.sort((a, b) => b.total_score - a.total_score);
+  renderResults();
+
+  progressSection.classList.remove('active');
+  isRanking = false;
+  const label = currentMode === 'professor' ? 'Professors' : 'PhD Students';
+  document.getElementById('rankBtnLabel').textContent = `Rank ${label}`;
+  document.getElementById('rankBtn').disabled = false;
+  document.getElementById('rankBtn').onclick = runRanking;
+}
+
+function stopRanking() {
+  isRanking = false;
+  document.getElementById('progressName').textContent = 'Stopping...';
+}
+
+function renderResults() {
+  if (results.length === 0) return;
+
+  const container = document.getElementById('resultsBody');
+  const isStudent = currentMode === 'student';
+  const showSignals = results.some(r => r.commercialization_signals);
+  const showSilence = hasDiscoveryResults;
+
+  const score2Label = isStudent ? 'Applied' : 'Cml';
+  const score3Label = isStudent ? 'Citations' : 'Transl';
+
+  // Filter out muted people from display (they remain in results array for export but won't render)
+  const displayResults = results.filter(r => !isPersonSilenced(r.name));
+
+  container.innerHTML = displayResults.map((r, i) => {
+    const silenced = false; // muted people are now fully hidden
+    const score2 = isStudent ? r.applied_research : r.commercial_track_record;
+    const score3 = isStudent ? r.citation_strength : r.translation_appetite;
+    const escapedName = r.name.replace(/'/g, "\\'");
+    const escapedUni = (r.university || '').replace(/'/g, "\\'");
+    const escapedAreas = (r.key_research_areas || '').replace(/'/g, "\\'");
+    const feedback = getFeedback(r.name);
+
+    // Build links
+    const links = [];
+    if (r.email) links.push(`<a href="mailto:${r.email}" title="${r.email}">Email</a>`);
+    if (r.research_page) links.push(`<a href="${r.research_page}" target="_blank" title="Research page">Page</a>`);
+    if (r.google_scholar) links.push(`<a href="${r.google_scholar}" target="_blank" title="Google Scholar">Scholar</a>`);
+
+    return `
+    <div class="result-card${silenced ? ' silenced' : ''}${feedback === 'up' ? ' feedback-good' : ''}${feedback === 'down' ? ' feedback-bad' : ''}">
+      <div class="card-header">
+        <span class="card-rank">${i + 1}</span>
+        <span class="card-name">${r.name}</span>
+        <span class="card-university">${r.university}</span>
+        <div class="card-links">
+          ${links.join('')}
+          ${showSilence ? `
+          <div class="card-feedback">
+            <button class="thumb-btn thumb-up${feedback === 'up' ? ' active' : ''}" title="Great match" onclick="showCommentModal('${escapedName}','${escapedUni}','${escapedAreas}','up')">&#x1F44D;</button>
+            <button class="thumb-btn thumb-down${feedback === 'down' ? ' active' : ''}" title="Poor match" onclick="showCommentModal('${escapedName}','${escapedUni}','${escapedAreas}','down')">&#x1F44E;</button>
+          </div>
+          <label class="card-silence"><input type="checkbox" title="${silenced ? 'Unmute' : 'Mute for 90 days'}" ${silenced ? 'checked' : ''} onchange="if(this.checked){silencePerson('${escapedName}');}else{unsilencePerson('${escapedName}');renderResults();}"> mute</label>` : ''}
+        </div>
+      </div>
+      ${isStudent && (r.advisor || r.graduation_date) ? `
+      <div class="card-meta">
+        ${r.advisor ? `<span><span class="meta-label">Advisor</span> ${r.advisor}</span>` : ''}
+        ${r.graduation_date ? `<span><span class="meta-label">Grad</span> ${r.graduation_date}</span>` : ''}
+      </div>` : ''}
+      <div class="card-scores">
+        <span class="score-pill"><span class="score-label">Theme</span> <span class="${scoreClass(r.theme_alignment)}">${r.theme_alignment}</span></span>
+        <span class="score-pill"><span class="score-label">${score2Label}</span> <span class="${scoreClass(score2)}">${score2}</span></span>
+        <span class="score-pill"><span class="score-label">${score3Label}</span> <span class="${scoreClass(score3)}">${score3}</span></span>
+        <span class="score-pill pill-total"><span class="score-label">Total</span> <span class="${totalClass(r.total_score)}">${r.total_score}</span></span>
+      </div>
+      <div class="card-areas">${r.key_research_areas}</div>
+      ${!isStudent && r.similar_faculty ? `<div class="card-meta"><span><span class="meta-label">Similar to</span> ${r.similar_faculty}</span></div>` : ''}
+      <div class="card-section">
+        <div class="card-section-label">CRM Overview</div>
+        <div class="card-section-text">${r.crm_overview}</div>
+      </div>
+      <div class="card-section">
+        <div class="card-section-label">Outreach Brief</div>
+        <div class="card-section-text">${r.outreach_brief}</div>
+      </div>
+      ${showSignals && r.commercialization_signals ? `
+      <div class="card-signals">
+        <div class="card-section-label">Commercialization Signals</div>
+        <div class="card-section-text">${r.commercialization_signals}</div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('resultsSection').classList.add('active');
+  updateSilencedBadge();
+}
+
+function exportCSV() {
+  if (results.length === 0) {
+    showError('No results to export yet. Run a ranking first.');
+    return;
+  }
+
+  const isStudent = currentMode === 'student';
+  const headers = ['Rank', 'Name', 'University'];
+  if (isStudent) headers.push('Advisor', 'Graduation');
+  const hasSignals = results.some(r => r.commercialization_signals);
+  if (isStudent) {
+    headers.push('Email', 'Research Page', 'Google Scholar', 'Theme Alignment', 'Applied Research', 'Citation Strength', 'Total Score', 'Key Research Areas');
+  } else {
+    headers.push('Email', 'Research Page', 'Google Scholar', 'Theme Alignment', 'Commercial Track Record', 'Translation Appetite', 'Total Score', 'Key Research Areas', 'Similar Faculty');
+  }
+  if (hasSignals) headers.push('Commercialization Signals');
+  headers.push('CRM Overview', 'Outreach Brief');
+  const rows = results.map((r, i) => {
+    const row = [
+    i + 1,
+    `"${r.name}"`,
+    `"${r.university}"`];
+    if (isStudent) row.push(`"${r.advisor || ''}"`, `"${r.graduation_date || ''}"`);
+    row.push(`"${r.email || ''}"`,
+    `"${r.research_page || ''}"`,
+    `"${r.google_scholar || ''}"`,
+    r.theme_alignment,
+    isStudent ? r.applied_research : r.commercial_track_record,
+    isStudent ? r.citation_strength : r.translation_appetite,
+    r.total_score,
+    `"${r.key_research_areas}"`)
+    if (!isStudent) row.push(`"${(r.similar_faculty || '').replace(/"/g, '""')}"`);
+    if (hasSignals) row.push(`"${(r.commercialization_signals || '').replace(/"/g, '""')}"`);
+    row.push(`"${(r.crm_overview || '').replace(/"/g, '""')}"`,
+    `"${(r.outreach_brief || '').replace(/"/g, '""')}"`)
+    return row;
+  });
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = currentMode === 'professor' ? 'professor-rankings.csv' : 'student-rankings.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('active');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('active');
+}
+
+function toggleBulk() {
+  const content = document.getElementById('bulkContent');
+  const arrow = document.getElementById('bulkArrow');
+  content.classList.toggle('active');
+  arrow.classList.toggle('open');
+}
+
+function switchBulkTab(tab, btn) {
+  document.querySelectorAll('.bulk-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('bulkPasteSection').style.display = tab === 'paste' ? 'block' : 'none';
+  document.getElementById('bulkCsvSection').style.display = tab === 'csv' ? 'flex' : 'none';
+  document.getElementById('bulkCsvSection').classList.toggle('active', tab === 'csv');
+}
+
+function bulkAddFromText() {
+  const text = document.getElementById('bulkTextarea').value.trim();
+  if (!text) return;
+
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  let added = 0;
+
+  for (const line of lines) {
+    const parts = line.split(',').map(s => s.trim());
+    const name = parts[0];
+    if (!name) continue;
+
+    const university = parts[1] || 'MIT';
+
+    professors.push({ name, university, email: null, researchPage: null, advisor: null });
+    added++;
+  }
+
+  if (added > 0) {
+    renderTags();
+    document.getElementById('rankBtn').disabled = false;
+    document.getElementById('bulkTextarea').value = '';
+  }
+}
+
+function bulkAddFromFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    // Skip header row if it looks like headers and detect advisor column index
+    let start = 0;
+    let advisorColIdx = -1;
+    const firstLine = lines[0].toLowerCase();
+    const headerDelimiter = lines[0].includes('\t') ? '\t' : ',';
+    if (firstLine.includes('name') || firstLine.includes('professor') || firstLine.includes('full')) {
+      start = 1;
+      const headerParts = lines[0].split(headerDelimiter).map(s => s.trim().replace(/^["']|["']$/g, '').toLowerCase());
+      advisorColIdx = headerParts.findIndex(h => h.includes('advisor'));
+    }
+
+    let added = 0;
+    for (let i = start; i < lines.length; i++) {
+      // Handle both comma and tab delimiters
+      const delimiter = lines[i].includes('\t') ? '\t' : ',';
+      const parts = lines[i].split(delimiter).map(s => s.trim().replace(/^["']|["']$/g, ''));
+
+      // Try to find the name column (first non-empty meaningful column)
+      const name = parts[0];
+      if (!name || name.length < 2) continue;
+
+      // Look for university, email, research page, advisor in remaining columns
+      let university = 'MIT';
+      let email = null;
+      let researchPage = null;
+      let advisor = null;
+
+      // If we detected an advisor column from headers, use it
+      if (advisorColIdx >= 0 && parts[advisorColIdx]) {
+        advisor = parts[advisorColIdx];
+      }
+
+      for (let j = 1; j < parts.length; j++) {
+        if (j === advisorColIdx) continue; // already handled
+        const val = parts[j].toLowerCase();
+        if (val.includes('mit') || val.includes('harvard') || val.includes('stanford') || val.includes('cmu')) {
+          university = parts[j];
+        } else if (val.includes('@')) {
+          email = parts[j];
+        } else if (val.includes('http') || val.includes('.edu')) {
+          researchPage = parts[j];
+        }
+      }
+
+      professors.push({ name, university, email, researchPage, advisor });
+      added++;
+    }
+
+    if (added > 0) {
+      renderTags();
+      document.getElementById('rankBtn').disabled = false;
+    }
+
+    input.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+// ========== DISCOVERY FEATURE ==========
+
+let discoveryResults = [];
+
+function getDiscoveryPrompt() {
+  const entityType = currentMode === 'professor' ? 'professors' : 'PhD students';
+  const entitySingular = currentMode === 'professor' ? 'professor' : 'PhD student';
+  const deptContext = 'MIT (EECS, CSAIL) and Harvard (SEAS)';
+
+  // Build exclusion list from current queue + silenced people
+  const existingNames = professors.map(p => p.name).concat(results.map(r => r.name));
+  const silencedNames = getSilencedNames();
+  const allExcluded = [...new Set([...existingNames, ...silencedNames])].filter(n => n);
+  const excludeClause = allExcluded.length > 0
+    ? `\n\nDo NOT recommend any of these people (already evaluated or silenced): ${allExcluded.join(', ')}`
+    : '';
+
+  // Build feedback calibration from thumbs up/down
+  const { good, bad } = getFeedbackExamples();
+  let feedbackClause = '';
+  if (good.length > 0 || bad.length > 0) {
+    feedbackClause = '\n\n## Calibration from User Feedback\nThe Pillar team has rated previous discovery results. Use this to calibrate who you recommend:';
+    if (good.length > 0) {
+      feedbackClause += '\n\n**GOOD matches (recommend more people like these):**';
+      good.forEach(g => { feedbackClause += `\n- ${g.name} (${g.university}) — ${g.areas}${g.comment ? ` — "${g.comment}"` : ''}`; });
+    }
+    if (bad.length > 0) {
+      feedbackClause += '\n\n**POOR matches (avoid recommending people like these):**';
+      bad.forEach(b => { feedbackClause += `\n- ${b.name} (${b.university}) — ${b.areas}${b.comment ? ` — "${b.comment}"` : ''}`; });
+    }
+  }
+
+  return `You are helping Pillar VC discover the most promising ${entityType} to build relationships with at ${deptContext}.
+
+## CRITICAL: Only Current MIT/Harvard Affiliates
+Only recommend people who are CURRENTLY at MIT or Harvard. Do NOT include anyone who has graduated, left, moved to another university, or taken a position elsewhere — even if they were recently at MIT or Harvard. Verify their current affiliation before including them. If a PhD student has already defended and graduated, do NOT include them. If a professor has moved to another institution, do NOT include them.
+
+## CRITICAL: Prioritize Imminent Commercialization
+
+Your #1 goal is to surface ${entityType} who are most likely ON THE CUSP of commercializing something RIGHT NOW. These are the highest-value outreach targets because Pillar can engage before a formal fundraise.
+
+Look for these ACTIVE commercialization signals (in order of importance):
+1. **Currently forming or recently formed a startup** — incorporated a company, listed as founder/co-founder, filed a DBA, appeared on Crunchbase or PitchBook
+2. **Recent patent filings** (within last 1-2 years) — especially provisional patents or PCT applications, which signal intent to commercialize
+3. **Active SBIR/STTR/NSF I-Corps grants** — these are explicitly for translating research into commercial products
+4. **DARPA or ARPA-E funded projects** — often have commercialization milestones baked in
+5. **Recent publications with applied/industry framing** — papers that describe systems, tools, or platforms (not just theory), especially with industry co-authors
+6. **Technology licensing activity through MIT TLO or Harvard OTD** — technologies available for licensing or with active licensees
+7. **Engagement with accelerators/incubators** — MIT delta v, The Engine, Harvard Innovation Labs, Activate fellowship
+8. **Recent industry partnerships or sponsored research** — corporate collaborations that signal a product direction
+9. **Hiring signals** — lab postings for "applied" roles, engineering positions, or business development
+10. **Media/press coverage** — recent profiles, "startup to watch" mentions, technology demos
+
+Think carefully about who at ${deptContext} is showing the STRONGEST recent signals of being ready to spin something out. Consider recent papers (2023-2025), grant awards, patent filings, and any startup-related activity.
+
+## Pillar VC Investment Themes
+AI for Science, Biotech, Enterprise Software, Chips & Semiconductors, Robotics, Infrastructure & Energy, Advanced Materials.
+
+${currentMode === 'professor'
+  ? 'Focus on professors whose research has clear product potential and who are showing recent signals of wanting to commercialize — not just professors who are famous or well-published.'
+  : 'Focus on PhD students who are building things that look like they could become companies — tools, platforms, systems — especially those in entrepreneurship programs, with patents, or whose advisors have strong commercialization track records.'}
+
+## Consequence Score Calibration (from Pillar's past meetings)
+Pillar has met with many people and scored them on "consequence" — how valuable the meeting was. Use these examples to understand what makes a GREAT fit (8-10) vs. a POOR fit (1-3). Recommend people who resemble the 8-10s, NOT the 1-3s.
+
+**GREAT fits (score 8-10) — find more people like these:**
+- Armando Solar-Lezama (10): programming languages, program synthesis, AI-assisted coding — builds tools that become products
+- Dina Katabi (10): wireless systems, RF sensing, health monitoring — serial founder, multiple startups
+- Tim Kraska (10): learned indexes, database systems, AI for data — applied systems research with startup history
+- Pulkit Agrawal (10): robotics, manipulation, embodied AI — builds real robotic systems
+- Song Han (10): efficient ML, model compression, neural architecture — direct industry applications
+- Devavrat Shah (10): ML systems, causal inference, operations — applied statistical methods
+- Yoon Kim (10): NLP, language models, efficient transformers — builds practical NLP tools
+- Jacob Andreas (10): language grounding, compositional learning — applied language AI
+- Nir Shavit (10): concurrent computing, connectomics, computational neuroscience — systems builder
+- Mohammad Alizadeh (10): computer networks, congestion control, ML for systems — founded Csail spinout
+- Hari Balakrishnan (10): networked systems, mobile computing — serial entrepreneur
+- Sertac Karaman (10): autonomous systems, robotics, motion planning — founded companies
+- Rama Ramakrishnan (10): applied ML, retail analytics — direct commercial applications
+- Samuel Madden (10): database systems, data management, IoT — co-founded multiple startups
+- Joseph Jacobson (10): synthetic biology, nanofabrication, new media — inventor and entrepreneur
+- Shafi Goldwasser (10): cryptography, complexity theory, zero-knowledge proofs — foundational IP
+- Russ Tedrake (9): robotics, control, simulation — built Drake simulator, industry impact
+- Ferdinand Kossmann (9): database systems, query optimization — applied systems
+- Mingda Li (9): quantum materials, neutron scattering — materials with commercial potential
+- Marin Soljacic (8): photonics, wireless energy, metamaterials — founded WiTricity
+- Saman Amarasinghe (8): compilers, parallel computing, domain-specific languages — systems builder
+- Jeffrey Grossman (8): computational materials, energy, water — applied materials science
+- Phillip Isola (8): computer vision, generative models, self-supervised learning — builds tools
+- Manya Ghobadi (8): optical networks, ML for networking — applied networking research
+
+**POOR fits (score 1-3) — avoid people like these:**
+- Stefanie Jegelka (1): theoretical ML, graph neural networks — purely theoretical
+- Frans Kaashoek (1): operating systems, distributed systems — academic focus, not commercializing
+- Wojciech Matusik (1): computational fabrication, graphics — academic focus
+- Tommi Jaakkola (1): statistical ML theory, probabilistic models — purely theoretical
+- Ramesh Raskar (1): computational photography, health — not aligned with current themes
+- Anant Agarwal (1): chip architecture, online education — not commercialization-focused now
+- Dylan Hadfield-Menell (1): AI safety, value alignment — theoretical/policy oriented
+- Asu Ozdaglar (1): optimization theory, game theory, network economics — purely theoretical
+- Adam Chlipala (1): formal verification, proof assistants — too academic
+- Peter Baile Chen (1): database theory — too early/theoretical
+- Qinghao Hu (2): ML systems — too junior, limited track record
+- Cai Zhou (3), Vivek Gopalakrishnan (3), Shang Yang (3): too junior or theoretical for Pillar's needs
+
+The pattern is clear: Pillar values people who BUILD SYSTEMS and TOOLS with clear product potential, have commercial track records or startup activity, and work in applied areas. Avoid pure theorists, policy researchers, and people without commercialization signals regardless of prestige.
+${excludeClause}${feedbackClause}
+
+Return a JSON array of exactly 5 objects, each with these fields:
+- "name": full name
+- "university": "MIT" or "Harvard"${currentMode === 'student' ? `
+- "advisor": the name of their PhD advisor/PI — REQUIRED for students. Check their university profile page, lab website, Google Scholar page (look at co-author patterns and "supervised by" fields), or recent publications (the last/senior author is typically the advisor). This is critical information, try hard to find it.
+- "graduation_date": their expected or actual graduation date (e.g., "May 2026", "Spring 2027", "2025"). Check their university profile, CV, or LinkedIn. If unknown, use an empty string.` : ''}
+- "email": their institutional email address (best guess from public sources, or empty string if unknown)
+- "research_page": URL of their research/lab page on the university website (or empty string if unknown)
+- "google_scholar": URL of their Google Scholar profile (format: https://scholar.google.com/citations?user=XXXX, or empty string if unknown)
+- "theme_alignment": integer 1-10
+${currentMode === 'professor'
+  ? `- "commercial_track_record": integer 1-10
+- "translation_appetite": integer 1-10`
+  : `- "applied_research": integer 1-10 (how applied vs. theoretical is their research — systems, tools, prototypes score higher)
+- "citation_strength": integer 1-10 (strength of Google Scholar citations relative to PhD career stage)`}
+- "total_score": sum of the three scores
+- "key_research_areas": comma-separated list of their main research areas
+- "commercialization_signals": a brief list of the SPECIFIC recent signals you identified (e.g., "Filed patent on X in 2024, co-PI on NSF I-Corps grant, presenting at TechCrunch Disrupt")
+${currentMode === 'professor' ? `- "similar_faculty": a comma-separated list of 2-3 other well-known faculty (at any university) whose research profile is most similar to this person — helps Pillar quickly understand their niche` : ''}
+- "crm_overview": 2-3 concise sentences — who they are, what they work on, and why Pillar should care. Keep it tight.
+- "outreach_brief": 1 sentence — a specific hook Jamie/Parker can reference in a cold email
+
+Sort the array by who is CLOSEST to commercializing something (not just highest total score). The person most likely to be starting a company in the next 6-12 months should be first.
+
+Return ONLY the JSON array, no other text.`;
+}
+
+async function runDiscovery() {
+  const discoverBtn = document.getElementById('discoverBtn');
+  discoverBtn.disabled = true;
+  document.getElementById('discoverBtnLabel').innerHTML = '&#x23F3; Discovering...';
+
+  hideError();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 8192,
+        system: getSystemPrompt(),
+        messages: [{ role: 'user', content: getDiscoveryPrompt() }]
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      throw new Error(`API error ${response.status}: ${errBody}`);
+    }
+
+    const data = await response.json();
+    let text = data.content[0].text.trim();
+    if (text.startsWith('```')) {
+      const lines = text.split('\n');
+      text = lines.slice(1, -1).join('\n');
+    }
+
+    discoveryResults = JSON.parse(text);
+
+    // Filter out any silenced people the LLM returned anyway
+    const currentSilenced = getSilencedNames().map(n => n.toLowerCase());
+    discoveryResults = discoveryResults.filter(d => !currentSilenced.includes(d.name.toLowerCase().trim()));
+
+    // Normalize fields and push directly into results
+    discoveryResults.forEach(d => {
+      if (currentMode === 'student') {
+        d.applied_research = d.applied_research || 0;
+        d.citation_strength = d.citation_strength || 0;
+        d.total_score = d.theme_alignment + d.applied_research + d.citation_strength;
+      } else {
+        d.total_score = d.theme_alignment + d.commercial_track_record + d.translation_appetite;
+      }
+      d.email = d.email || '';
+      d.research_page = d.research_page || '';
+      d.google_scholar = d.google_scholar || '';
+      d.advisor = d.advisor || '';
+      d.graduation_date = d.graduation_date || '';
+      d.similar_faculty = d.similar_faculty || '';
+      d.commercialization_signals = d.commercialization_signals || '';
+      d.crm_overview = d.crm_overview || '';
+      d.outreach_brief = d.outreach_brief || '';
+    });
+
+    // Sort by total score descending
+    discoveryResults.sort((a, b) => b.total_score - a.total_score);
+
+    // Merge into results (avoid duplicates by name)
+    hasDiscoveryResults = true;
+    for (const d of discoveryResults) {
+      const exists = results.some(r => r.name.toLowerCase() === d.name.toLowerCase());
+      if (!exists) {
+        results.push(d);
+      }
+    }
+
+    // Re-sort combined results
+    results.sort((a, b) => b.total_score - a.total_score);
+    renderResults();
+  } catch (err) {
+    showError(`Discovery failed: ${err.message}`);
+    console.error(err);
+  } finally {
+    discoverBtn.disabled = false;
+    document.getElementById('discoverBtnLabel').innerHTML = `&#x1F50D; Discover Top Picks`;
+  }
+}
+
+</script>
+</body>
+</html>
