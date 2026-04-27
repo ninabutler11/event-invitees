@@ -2365,10 +2365,12 @@ HARD REQUIREMENTS:
 5. Aim for diversity in your selections (gender, background, career stage where applicable) unless the attributes explicitly call for something narrower.
 6. Match the location filter when one is provided \u2014 prioritize people who live in or frequently travel to that city.
 
-Return ONLY a JSON code block with this exact shape, and nothing else outside the code block:
+OUTPUT FORMAT (CRITICAL):
+ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context (e.g. "only found 6, consider broadening location"), put them in the optional top-level "note" field. Empty list with a note is valid output.
 
 \`\`\`json
 {
+  "note": "(optional) any caveat, partial-result reason, or suggestion for the user",
   "people": [
     {
       "name": "Full Name",
@@ -2413,14 +2415,18 @@ Return ONLY a JSON code block with this exact shape, and nothing else outside th
     }
     const finalText = textBlocks[textBlocks.length - 1].text;
 
+    // Try to extract a JSON code block first; if missing or malformed,
+    // surface Claude's prose to the user as a friendly note instead of erroring.
     const jsonMatch = finalText.match(/```json\s*([\s\S]*?)\s*```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : finalText;
-
     let parsed;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch (e) {
-      throw new Error('Could not parse Claude response as JSON. First 300 chars: ' + finalText.substring(0, 300));
+    if (!jsonMatch) {
+      parsed = { note: 'Claude responded in prose instead of JSON. Here is what it said:\n\n' + finalText.trim(), people: [] };
+    } else {
+      try {
+        parsed = JSON.parse(jsonMatch[1]);
+      } catch (e) {
+        parsed = { note: 'Claude returned a JSON block that did not parse. Raw response below — try refining your inputs and running again.\n\n' + finalText.trim().substring(0, 800), people: [] };
+      }
     }
 
     renderEventGuests(parsed);
@@ -2444,9 +2450,14 @@ function clearEventForm() {
 function renderEventGuests(parsed) {
   const body = document.getElementById('eventResultsBody');
   const people = (parsed && Array.isArray(parsed.people)) ? parsed.people : [];
+  const note = parsed && parsed.note ? String(parsed.note) : '';
+
+  const noteHtml = note
+    ? `<div style="background:#FAF3EA;border:1px solid #E8DCC9;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#4A5568;line-height:1.5;white-space:pre-wrap;"><div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Note from Claude</div>${escapeLookalikeHtml(note)}</div>`
+    : '';
 
   if (people.length === 0) {
-    body.innerHTML = '<div class="empty-state">No guests could be verified. Try refining the description or attributes.</div>';
+    body.innerHTML = noteHtml || '<div class="empty-state">No guests could be verified. Try refining the description or attributes.</div>';
     return;
   }
 
@@ -2495,7 +2506,7 @@ function renderEventGuests(parsed) {
     </div>`;
   }).join('');
 
-  body.innerHTML = cards;
+  body.innerHTML = noteHtml + cards;
 }
 
 // ---------- Lookalike feature ----------
@@ -2627,11 +2638,13 @@ HARD REQUIREMENTS:
 3. If you cannot verify someone via web search, do NOT include them. Better to return fewer than 10 verified people than to invent.
 4. Do not include anyone already in the seed list above.
 
-Return ONLY a JSON code block with this exact shape, and nothing else outside the code block:
+OUTPUT FORMAT (CRITICAL):
+ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context, put them in the optional top-level "note" field. Empty list with a note is valid output.
 
 \`\`\`json
 {
   "pattern_summary": "one sentence describing what the seed list has in common",
+  "note": "(optional) any caveat, partial-result reason, or suggestion for the user",
   "people": [
     {
       "name": "Full Name",
@@ -2679,14 +2692,18 @@ Return ONLY a JSON code block with this exact shape, and nothing else outside th
     }
     const finalText = textBlocks[textBlocks.length - 1].text;
 
+    // Tolerate prose responses: if Claude bails on JSON format, surface
+    // its words as a note instead of throwing a parse error.
     const jsonMatch = finalText.match(/```json\s*([\s\S]*?)\s*```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : finalText;
-
     let parsed;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch (e) {
-      throw new Error('Could not parse Claude\u2019s response as JSON. First 300 chars: ' + finalText.substring(0, 300));
+    if (!jsonMatch) {
+      parsed = { note: 'Claude responded in prose instead of JSON. Here is what it said:\n\n' + finalText.trim(), people: [] };
+    } else {
+      try {
+        parsed = JSON.parse(jsonMatch[1]);
+      } catch (e) {
+        parsed = { note: 'Claude returned a JSON block that did not parse. Raw response below \u2014 try refining the seed list and running again.\n\n' + finalText.trim().substring(0, 800), people: [] };
+      }
     }
 
     renderLookalikes(parsed);
@@ -2704,15 +2721,20 @@ Return ONLY a JSON code block with this exact shape, and nothing else outside th
 function renderLookalikes(parsed) {
   const body = document.getElementById('lookalikeResultsBody');
   const people = (parsed && Array.isArray(parsed.people)) ? parsed.people : [];
+  const note = parsed && parsed.note ? String(parsed.note) : '';
+
+  const noteHtml = note
+    ? `<div style="background:#FAF3EA;border:1px solid #E8DCC9;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#4A5568;line-height:1.5;white-space:pre-wrap;"><div style="font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Note from Claude</div>${escapeLookalikeHtml(note)}</div>`
+    : '';
 
   if (people.length === 0) {
-    body.innerHTML = '<div class="empty-state">No similar people could be verified. Try a longer or more specific seed list.</div>';
+    body.innerHTML = noteHtml || '<div class="empty-state">No similar people could be verified. Try a longer or more specific seed list.</div>';
     return;
   }
 
-  let summaryHtml = '';
+  let summaryHtml = noteHtml;
   if (parsed.pattern_summary) {
-    summaryHtml = `<div style="font-size:13px; color:#64748B; margin-bottom:12px; font-style:italic;">Pattern detected: ${escapeLookalikeHtml(parsed.pattern_summary)}</div>`;
+    summaryHtml += `<div style="font-size:13px; color:#64748B; margin-bottom:12px; font-style:italic;">Pattern detected: ${escapeLookalikeHtml(parsed.pattern_summary)}</div>`;
   }
 
   const cards = people.map((p, idx) => {
