@@ -841,6 +841,21 @@
   </div>
 </div>
 
+<!-- Affinity Token Entry Screen (shown after Anthropic key if no saved Affinity token in this browser) -->
+<div id="affinityTokenScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:none;align-items:center;justify-content:center;z-index:9997;">
+  <div style="text-align:center; max-width:520px; padding:0 20px;">
+    <div style="width:48px;height:48px;background:#e63329;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:white;margin:0 auto 16px;">P</div>
+    <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Add your Affinity API key</h2>
+    <p style="color:#64748B;font-size:13px;margin-bottom:6px;line-height:1.5;">This tool queries Pillar's Affinity CRM through the Affinity MCP server (<code style="background:#F2E8DA;padding:1px 5px;border-radius:3px;">mcp.affinity.co/mcp</code>) using your own API key. Your key is stored only in this browser's localStorage.</p>
+    <p style="color:#94A3B8;font-size:12px;margin-bottom:24px;">Generate one at Affinity &rarr; Settings &rarr; Manage Apps &rarr; <strong>+ New App</strong>. You'll only see the key once &mdash; save it somewhere safe.</p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <input type="password" id="affinityTokenInput" placeholder="Paste your Affinity API key" style="padding:10px 14px;background:#FFFFFF;border:1px solid #E8DCC9;border-radius:8px;color:#1A1F2E;font-size:14px;font-family:inherit;width:320px;max-width:100%;" />
+      <button onclick="saveAffinityToken()" style="padding:10px 20px;background:#e63329;border:none;border-radius:8px;color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Save</button>
+    </div>
+    <p id="affinityTokenError" style="color:#DC2626;font-size:13px;margin-top:10px;display:none;"></p>
+  </div>
+</div>
+
 <!-- Password Screen -->
 <div id="passwordScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:flex;align-items:center;justify-content:center;z-index:9999;">
   <div style="text-align:center;">
@@ -861,8 +876,9 @@
     <div class="logo">P</div>
     <h1>Event Guest List Generator <span>by Pillar VC</span></h1>
   </div>
-  <div class="header-right">
-    <button onclick="clearApiKey()" style="background:none;border:1px solid #E8DCC9;color:#64748B;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;" title="Clear the API key stored in this browser">Change API key</button>
+  <div class="header-right" style="display:flex;gap:8px;">
+    <button onclick="clearApiKey()" style="background:none;border:1px solid #E8DCC9;color:#64748B;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;" title="Clear the Anthropic API key stored in this browser">Change Anthropic key</button>
+    <button onclick="clearAffinityToken()" style="background:none;border:1px solid #E8DCC9;color:#64748B;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;" title="Clear the Affinity API key stored in this browser">Change Affinity key</button>
   </div>
 </div>
 
@@ -952,15 +968,25 @@ Florian Hillen, Co-Founder & CEO, VideaHealth"></textarea>
 </div> <!-- end appContent -->
 
 <script>
+// Both keys live per-user in this browser's localStorage. Neither key is
+// committed to the repo or ships in the deployed source, so GitHub's secret
+// scanner has nothing to find and nothing to revoke.
+let API_KEY = localStorage.getItem('anthropic_api_key') || '';
+let AFFINITY_TOKEN = localStorage.getItem('affinity_personal_token') || '';
+
+// Routes the user through the gate sequence after each step:
+// password -> Anthropic key -> Affinity key -> app.
+function proceedAfterAuth() {
+  if (!API_KEY) { showApiKeyScreen(); return; }
+  if (!AFFINITY_TOKEN) { showAffinityTokenScreen(); return; }
+  document.getElementById('appContent').style.display = 'block';
+}
+
 function checkPassword() {
   const input = document.getElementById('passwordInput').value;
   if (input === 'dinnerparty') {
     document.getElementById('passwordScreen').style.display = 'none';
-    if (!API_KEY) {
-      showApiKeyScreen();
-    } else {
-      document.getElementById('appContent').style.display = 'block';
-    }
+    proceedAfterAuth();
   } else {
     document.getElementById('passwordError').style.display = 'block';
     document.getElementById('passwordInput').value = '';
@@ -971,6 +997,7 @@ document.getElementById('passwordInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') checkPassword();
 });
 
+// ----- Anthropic key gate -----
 function showApiKeyScreen() {
   const screen = document.getElementById('apiKeyScreen');
   screen.style.display = 'flex';
@@ -1000,15 +1027,15 @@ function saveApiKey() {
   errEl.style.display = 'none';
   document.getElementById('apiKeyInput').value = '';
   document.getElementById('apiKeyScreen').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
+  proceedAfterAuth();
 }
 
 function clearApiKey() {
-  if (!confirm("Remove your saved API key from this browser? You'll need to paste it again next time you open this page.")) return;
+  if (!confirm("Remove your saved Anthropic API key from this browser? You'll need to paste it again next time you open this page.")) return;
   localStorage.removeItem('anthropic_api_key');
   API_KEY = '';
   document.getElementById('appContent').style.display = 'none';
-  showApiKeyScreen();
+  proceedAfterAuth();
 }
 
 const apiKeyInputEl = document.getElementById('apiKeyInput');
@@ -1018,10 +1045,53 @@ if (apiKeyInputEl) {
   });
 }
 
-// API key is stored per-user in this browser's localStorage.
-// It never lives in the repo or ships in the deployed source, so GitHub's
-// secret scanner has nothing to find and nothing to revoke.
-let API_KEY = localStorage.getItem('anthropic_api_key') || '';
+// ----- Affinity API key gate -----
+function showAffinityTokenScreen() {
+  const screen = document.getElementById('affinityTokenScreen');
+  screen.style.display = 'flex';
+  setTimeout(() => {
+    const input = document.getElementById('affinityTokenInput');
+    if (input) input.focus();
+  }, 50);
+}
+
+function saveAffinityToken() {
+  const token = document.getElementById('affinityTokenInput').value.trim();
+  const errEl = document.getElementById('affinityTokenError');
+
+  if (!token) {
+    errEl.textContent = 'Please paste your Affinity API key.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (token.length < 20) {
+    errEl.textContent = "That key looks too short. Affinity API keys are usually 30+ characters.";
+    errEl.style.display = 'block';
+    return;
+  }
+
+  localStorage.setItem('affinity_personal_token', token);
+  AFFINITY_TOKEN = token;
+  errEl.style.display = 'none';
+  document.getElementById('affinityTokenInput').value = '';
+  document.getElementById('affinityTokenScreen').style.display = 'none';
+  proceedAfterAuth();
+}
+
+function clearAffinityToken() {
+  if (!confirm("Remove your saved Affinity API key from this browser? You'll need to paste it again next time.")) return;
+  localStorage.removeItem('affinity_personal_token');
+  AFFINITY_TOKEN = '';
+  document.getElementById('appContent').style.display = 'none';
+  proceedAfterAuth();
+}
+
+const affinityTokenInputEl = document.getElementById('affinityTokenInput');
+if (affinityTokenInputEl) {
+  affinityTokenInputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveAffinityToken();
+  });
+}
 
 let currentMode = 'professor';
 
