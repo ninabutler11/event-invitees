@@ -905,6 +905,11 @@
       </div>
     </div>
 
+    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#4A5568; margin-top:14px; cursor:pointer; user-select:none;">
+      <input type="checkbox" id="dormantToggle" style="cursor:pointer; accent-color:#e63329;" />
+      Include people I haven't talked to in 12+ months <span style="color:#94A3B8; font-size:12px;">(re-engagement mode &mdash; off by default)</span>
+    </label>
+
     <div class="actions" style="margin-top: 16px;">
       <button class="btn btn-primary" id="generateGuestsBtn" onclick="generateEventGuests()">Generate guest list</button>
       <button class="btn btn-secondary" onclick="clearEventForm()">Clear</button>
@@ -913,7 +918,7 @@
 
   <div class="progress-section" id="eventProgressSection">
     <div class="progress-bar-container">
-      <div class="progress-text">Searching the web for great guests… (10–20 seconds)</div>
+      <div class="progress-text">Querying Affinity for matching contacts and ranking by event fit… (45–90 seconds)</div>
     </div>
   </div>
 
@@ -922,23 +927,29 @@
     <div id="eventResultsBody" class="cards-grid"></div>
   </div>
 
-  <!-- Lookalike feature: paste a seed list OR upload CSV, get similar real people via web search -->
+  <!-- Lookalike feature: pick an Affinity list, paste names, or upload CSV; find similar Pillar contacts -->
   <div class="input-section" id="lookalikeSection">
     <h2>Find more guests like these</h2>
-    <p>Provide an existing guest list. We'll search the web for real people with similar profiles (similar companies, titles, areas of focus). Every suggestion includes source links so you can verify before inviting.</p>
+    <p>Provide a seed group — pick an existing Affinity list, paste names, or upload a CSV. We'll find Pillar contacts with similar profiles (sector, role, stage, list memberships). The Location field at the top of the page applies as a hard geographic filter when set.</p>
 
     <div class="bulk-tabs">
-      <button class="bulk-tab active" onclick="switchLookalikeTab('paste', this)">Paste names</button>
+      <button class="bulk-tab active" onclick="switchLookalikeTab('list', this)">Pick an Affinity list</button>
+      <button class="bulk-tab" onclick="switchLookalikeTab('paste', this)">Paste names</button>
       <button class="bulk-tab" onclick="switchLookalikeTab('csv', this)">Upload CSV</button>
     </div>
 
-    <div id="lookalikePasteSection">
+    <div id="lookalikeListSection">
+      <input type="text" id="lookalikeListInput" placeholder="e.g. ZEvent: 2025 April Healthcare + AI Dinner" style="width:100%; padding:10px 14px; background:#FAF3EA; border:1px solid #E8DCC9; border-radius:8px; color:#1A1F2E; font-size:14px; font-family:inherit; outline:none; box-sizing:border-box;" />
+      <div class="bulk-hint">Type the name (or part of the name) of any list in Pillar's Affinity. Examples: <em>ZEvent: 2025 April Healthcare + AI Dinner</em>, <em>Boston Women Venture Backed Companies</em>, <em>Expert Bench: Robotics</em>. Claude will fuzzy-match — partial names work.</div>
+    </div>
+
+    <div id="lookalikePasteSection" style="display:none;">
       <textarea class="bulk-textarea" id="lookalikeSeedInput" placeholder="One guest per line. Format: Name, Title, Company
 
 Mikey Shulman, Co-Founder, Suno
 Daniel Nadler, Founder, OpenEvidence
 Florian Hillen, Co-Founder & CEO, VideaHealth"></textarea>
-      <div class="bulk-hint">One guest per line. <strong>Name, Title, Company</strong>. We'll infer the common pattern (sector, stage, role) and search for similar people.</div>
+      <div class="bulk-hint">One guest per line. <strong>Name, Title, Company</strong>. We'll infer the common pattern (sector, stage, role) and search Affinity for similar people.</div>
     </div>
 
     <div id="lookalikeCsvSection" class="bulk-file-row">
@@ -2393,50 +2404,68 @@ async function runDiscovery() {
   }
 }
 
-// ---------- Event guest list generator (PRIMARY feature) ----------
+// ---------- Event guest list generator (PRIMARY feature, v2) ----------
 // Takes event details (location, description, ideal guest attributes),
-// uses Claude + web_search to find 10 real, verifiable people.
+// uses Claude + Affinity MCP + web_search to find 10 ranked guests
+// from people Pillar already knows.
 
 async function generateEventGuests() {
   const location = document.getElementById('eventLocation').value.trim();
   const description = document.getElementById('eventDescription').value.trim();
   const attributes = document.getElementById('eventAttributes').value.trim();
+  const includeDormant = document.getElementById('dormantToggle')?.checked || false;
 
   if (!description && !attributes) {
     showError('Please describe the event or the ideal guest attributes before generating.');
+    return;
+  }
+  if (!AFFINITY_TOKEN) {
+    showError('Missing Affinity API key. Click "Change Affinity key" and paste yours, then try again.');
     return;
   }
   hideError();
 
   const btn = document.getElementById('generateGuestsBtn');
   const progressSection = document.getElementById('eventProgressSection');
+  const progressText = progressSection.querySelector('.progress-text');
   const resultsSection = document.getElementById('eventResultsSection');
   const resultsBody = document.getElementById('eventResultsBody');
 
   btn.disabled = true;
   btn.textContent = 'Searching\u2026';
+  if (progressText) progressText.textContent = 'Querying Affinity for matching contacts and ranking by event fit\u2026 (45\u201390 seconds)';
   progressSection.classList.add('active');
   resultsSection.classList.remove('active');
   resultsBody.innerHTML = '';
 
-  const prompt = `You are helping Pillar VC source guests for an event. Here are the event details:
+  const prompt = `You are Pillar VC's event guest list generator. Your job: produce a ranked list of up to 10 real Pillar contacts who'd be ideal guests for the event below. Every candidate must come from Pillar's Affinity CRM \u2014 do NOT invent people, and do NOT pull from the open web for discovery (web_search is only for recency enrichment of finalists).
 
-Location: ${location || 'Not specified'}
-Event description: ${description || 'Not specified'}
-Attributes of ideal guest: ${attributes || 'Not specified'}
+EVENT DETAILS
+- Location: ${location || 'not specified'}
+- Event description: ${description || 'not specified'}
+- Attributes of ideal guest: ${attributes || 'not specified'}
+- Recency mode: ${includeDormant ? 'Include dormant contacts (people Pillar has not talked to in 12+ months are eligible — re-engagement mode).' : 'Active contacts only (people Pillar has interacted with in the last 12 months).'}
 
-Your job: search the web to find exactly 10 REAL, named people who would be great guests for this event.
+DATA SOURCE
+You have access to Pillar's Affinity CRM via MCP tools. Pillar's Affinity has rich domain organization \u2014 many curated lists encoding sectors, geographies, programs, and past events. Some example list names you'll find:
+- Sector / topic: "Expert Bench: Robotics", "Expert Bench: Semiconductors", "Experts: Healthcare + AI", "Expert List: AI (aka AI for Science Advisors)", "EXPERTS: Insurance"
+- Geography / demographic: "Boston Women Venture Backed Companies", "Venture Backed Women CEOs in Boston", "CEOs in London", "VIP Women"
+- Stage / role: "Portfolio Founders", "VCs", "Investor Network", "Reporters", "Scouts", "Pillar Anti-Portfolio (CEOs)"
+- Programs: "ZProgram: All Frequency Cohorts", "Founding Pillars", "Venture Associates"
+- Past events (40+ ZEvent: lists): "ZEvent: 2025 April Healthcare + AI Dinner", "ZEvent: 2024 February Robotics Dinner", etc.
+List names matter \u2014 they encode Pillar's curated taxonomy and pre-filter the candidate pool to high-signal people.
 
-HARD REQUIREMENTS:
-1. Every person must be a real, currently-active human. Use the web_search tool to verify each one \u2014 confirm their current company, current role, and that they are publicly active (recent news, company About page, LinkedIn, etc.).
-2. Cite at least one source URL per person from your web search results.
-3. If you cannot verify someone, do NOT include them. Better to return fewer than 10 verified people than to invent.
-4. Email addresses are usually private \u2014 only include if you find a publicly-listed one. Otherwise omit the email field entirely.
-5. Aim for diversity in your selections (gender, background, career stage where applicable) unless the attributes explicitly call for something narrower.
-6. Match the location filter when one is provided \u2014 prioritize people who live in or frequently travel to that city.
+PROCESS
+1. Parse the event into structured signals: sector(s), role pattern, geography, stage, recency requirement.
+2. Call get_lists() to see Pillar's lists. Identify 1\u20133 lists whose names map to the parsed signals (and ALWAYS prefer list-based filtering over open-ended search when a list cleanly matches). When two lists are both relevant, intersect their members.
+3. Call get_list_entries() on the chosen list(s) to fetch members. Aim for a candidate pool of 30\u2013100 people. If the result is too narrow, broaden by relaxing one filter; if too broad, intersect another list.
+4. For each candidate in the pool, call get_person_info() (or get_entity_field_values) to pull rich data: current title, company, email, LinkedIn URL, location, last contact date, owner, source of intro, sector, programs, expertise. If the data is sparse, lean on relationship strength via get_relationship_strengths().
+5. Apply the Location filter as a HARD constraint when set (every result must be in that geography). Otherwise infer from the event description.
+6. Rank by event fit: sector/topic alignment, role-type match, recency of Pillar engagement, relationship strength, and diversity (gender, stage, background) unless the brief is narrow. Pick the top 10.
+7. For each of the top 10, do 1\u20132 targeted web_search calls for recency: "what is [name] up to lately" \u2014 look for new role, recent fundraise, news mention, recent talk. Hard cap: 2 searches per finalist, 20 total across all 10. This is the ONLY use of web_search; do not use it for discovery.
 
-OUTPUT FORMAT (CRITICAL):
-ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context (e.g. "only found 6, consider broadening location"), put them in the optional top-level "note" field. Empty list with a note is valid output.
+OUTPUT FORMAT (CRITICAL)
+ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context (e.g. "intersection returned only 6 \u2014 broadening to single list"), put them in the optional top-level "note" field.
 
 \`\`\`json
 {
@@ -2446,10 +2475,13 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
       "name": "Full Name",
       "title": "Current Title",
       "company": "Current Company",
-      "email": "publicly-listed email (omit field entirely if not found)",
-      "location": "City, Region (omit field entirely if not found)",
-      "linkedin": "https://www.linkedin.com/in/... (omit field entirely if not found)",
-      "why": "1-2 sentence reason this person fits the event",
+      "email": "email (omit field entirely if not in Affinity)",
+      "location": "City, Region (omit field entirely if not in Affinity)",
+      "linkedin": "https://www.linkedin.com/in/... (omit field entirely if not in Affinity)",
+      "lists": ["List name 1", "List name 2"],
+      "pillar_engagement": "Short factual summary from Affinity, e.g. 'Last met with Parker Mar 15. Introduced by Andy Palmer. In Frequency 2024 cohort.'",
+      "why": "1-2 sentences on why this person fits the event, grounded in their Affinity data",
+      "recent_activity": "(optional) what they're up to lately, from web search",
       "sources": ["url1", "url2"]
     }
   ]
@@ -2463,12 +2495,22 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'mcp-client-2025-11-20',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8192,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
+        mcp_servers: [{
+          type: 'url',
+          url: 'https://mcp.affinity.co/mcp',
+          name: 'affinity',
+          authorization_token: AFFINITY_TOKEN
+        }],
+        tools: [
+          { type: 'mcp_toolset', mcp_server_name: 'affinity' },
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 20 }
+        ],
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -2515,6 +2557,11 @@ function clearEventForm() {
   document.getElementById('eventLocation').value = '';
   document.getElementById('eventDescription').value = '';
   document.getElementById('eventAttributes').value = '';
+  resetSessionState();
+  // Also clear any rendered cards so the new search starts clean
+  const eventBody = document.getElementById('eventResultsBody');
+  if (eventBody) eventBody.innerHTML = '';
+  document.getElementById('eventResultsSection').classList.remove('active');
 }
 
 function renderEventGuests(parsed) {
@@ -2546,7 +2593,14 @@ function renderEventGuests(parsed) {
     if (p.email) metaParts.push(`<span><span class="meta-label">Email</span> ${escapeLookalikeHtml(p.email)}</span>`);
     if (p.location) metaParts.push(`<span><span class="meta-label">Location</span> ${escapeLookalikeHtml(p.location)}</span>`);
 
-    return `<div class="result-card" data-event-idx="${idx}">
+    // Affinity list-membership chips
+    const listChips = (Array.isArray(p.lists) ? p.lists : [])
+      .filter(l => l && String(l).trim())
+      .map(l => `<span style="display:inline-block; background:#F2E8DA; color:#1A1F2E; font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 2px 0;">${escapeLookalikeHtml(l)}</span>`)
+      .join('');
+
+    const pkey = personKey(p);
+    return `<div class="result-card" data-event-idx="${idx}" data-person-key="${escapeLookalikeHtml(pkey)}">
       <div class="card-header">
         <span class="card-rank">${idx + 1}</span>
         <span class="card-name">${escapeLookalikeHtml(p.name || 'Unknown')}</span>
@@ -2566,17 +2620,27 @@ function renderEventGuests(parsed) {
         <div class="card-section-label">Why a great guest</div>
         <div class="card-section-text">${escapeLookalikeHtml(p.why || '')}</div>
       </div>
+      ${p.pillar_engagement ? `<div class="card-section">
+        <div class="card-section-label">Pillar engagement</div>
+        <div class="card-section-text">${escapeLookalikeHtml(p.pillar_engagement)}</div>
+      </div>` : ''}
+      ${listChips ? `<div class="card-section">
+        <div class="card-section-label">Lists they're in</div>
+        <div class="card-section-text">${listChips}</div>
+      </div>` : ''}
+      ${p.recent_activity ? `<div class="card-section">
+        <div class="card-section-label">Recent activity (web)</div>
+        <div class="card-section-text">${escapeLookalikeHtml(p.recent_activity)}</div>
+      </div>` : ''}
       ${sources ? `<div class="card-section">
         <div class="card-section-label">Sources</div>
         <div class="card-section-text">${sources}</div>
       </div>` : ''}
-      <div class="card-section" style="font-size:11px; color:#94A3B8; font-style:italic;">
-        Pillar VC engagement history will appear here once the Affinity integration is live.
-      </div>
     </div>`;
   }).join('');
 
   body.innerHTML = noteHtml + cards;
+  applyPersistedStateToCards(body);
 }
 
 // ---------- Lookalike feature ----------
@@ -2584,9 +2648,14 @@ function renderEventGuests(parsed) {
 // real people via web_search. Every result is web-verified; Claude is
 // instructed not to invent people.
 
+// Track which seed source the user has selected
+let lookalikeSeedMode = 'list';
+
 function switchLookalikeTab(tab, btn) {
+  lookalikeSeedMode = tab;
   document.querySelectorAll('#lookalikeSection .bulk-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
+  document.getElementById('lookalikeListSection').style.display = (tab === 'list') ? 'block' : 'none';
   document.getElementById('lookalikePasteSection').style.display = (tab === 'paste') ? 'block' : 'none';
   document.getElementById('lookalikeCsvSection').classList.toggle('active', tab === 'csv');
 }
@@ -2661,10 +2730,16 @@ async function lookalikeFromFile(input) {
 
 function clearLookalike() {
   document.getElementById('lookalikeSeedInput').value = '';
+  const listInput = document.getElementById('lookalikeListInput');
+  if (listInput) listInput.value = '';
   const fileInput = document.getElementById('lookalikeFileInput');
   if (fileInput) fileInput.value = '';
   const loaded = document.getElementById('lookalikeCsvLoaded');
   if (loaded) loaded.style.display = 'none';
+  resetSessionState();
+  const lookalikeBody = document.getElementById('lookalikeResultsBody');
+  if (lookalikeBody) lookalikeBody.innerHTML = '';
+  document.getElementById('lookalikeResultsSection').classList.remove('active');
 }
 
 function escapeLookalikeHtml(s) {
@@ -2673,56 +2748,140 @@ function escapeLookalikeHtml(s) {
   })[c]);
 }
 
+// ---------- Per-search mute / feedback state ----------
+// In-memory only. Persists across renders within the current session so that
+// re-running with refined inputs doesn't lose the user's mute/thumbs choices.
+// Reset explicitly by either Clear button. Shared across event + lookalike
+// flows because they're typically used together when planning one event.
+const sessionPersonState = new Map();
+
+function personKey(person) {
+  return String((person && (person.email || person.name)) || '').trim().toLowerCase();
+}
+
+function getPersonStateByKey(key) {
+  return sessionPersonState.get(key) || { mute: false, feedback: null, comment: '' };
+}
+
+function updatePersonState(key, partial) {
+  if (!key) return;
+  const cur = getPersonStateByKey(key);
+  sessionPersonState.set(key, Object.assign(cur, partial));
+}
+
+function resetSessionState() {
+  sessionPersonState.clear();
+}
+
+// Apply existing mute/feedback state to a freshly-rendered card.
+// Called inside render functions after innerHTML is set.
+function applyPersistedStateToCards(rootEl) {
+  if (!rootEl) return;
+  rootEl.querySelectorAll('.result-card[data-person-key]').forEach(card => {
+    const key = card.getAttribute('data-person-key');
+    if (!key) return;
+    const state = getPersonStateByKey(key);
+    if (state.mute) {
+      card.classList.add('silenced');
+      const cb = card.querySelector('.card-silence input[type="checkbox"]');
+      if (cb) cb.checked = true;
+    }
+    if (state.feedback === 'up' || state.feedback === 'down') {
+      card.classList.add(state.feedback === 'up' ? 'feedback-good' : 'feedback-bad');
+      const btn = card.querySelector('.thumb-btn.thumb-' + state.feedback);
+      if (btn) btn.classList.add('active');
+    }
+  });
+}
+
 async function findLookalikes() {
+  // Read the active seed source
+  const listName = document.getElementById('lookalikeListInput').value.trim();
   const seedInput = document.getElementById('lookalikeSeedInput').value.trim();
-  if (!seedInput) {
+
+  // Decide which seed mode is in use; lookalikeSeedMode is set by tab clicks but
+  // also fall back to "whichever one has content" so users who type directly work fine.
+  let seedMode = lookalikeSeedMode;
+  if (seedMode === 'list' && !listName && seedInput) seedMode = 'paste';
+  if ((seedMode === 'paste' || seedMode === 'csv') && !seedInput && listName) seedMode = 'list';
+
+  if (seedMode === 'list' && !listName) {
+    showError('Type the name of an Affinity list to use as the seed (e.g. "ZEvent: 2025 April Healthcare + AI Dinner").');
+    return;
+  }
+  if ((seedMode === 'paste' || seedMode === 'csv') && !seedInput) {
     showError('Paste a guest list first — one person per line, format: Name, Title, Company.');
+    return;
+  }
+  if (!AFFINITY_TOKEN) {
+    showError('Missing Affinity API key. Click "Change Affinity key" and paste yours, then try again.');
     return;
   }
   hideError();
 
+  // Shared filters from the event-details form (top of page)
+  const sharedLocation = document.getElementById('eventLocation').value.trim();
+  const includeDormant = document.getElementById('dormantToggle')?.checked || false;
+
   const btn = document.getElementById('lookalikeBtn');
   const progressSection = document.getElementById('lookalikeProgressSection');
+  const progressText = document.getElementById('lookalikeProgressText');
   const resultsSection = document.getElementById('lookalikeResultsSection');
   const resultsBody = document.getElementById('lookalikeResultsBody');
 
   btn.disabled = true;
   btn.textContent = 'Searching…';
+  if (progressText) progressText.textContent = 'Resolving seed in Affinity, finding similar contacts, and ranking… (45–90 seconds)';
   progressSection.classList.add('active');
   resultsSection.classList.remove('active');
   resultsBody.innerHTML = '';
 
-  const prompt = `You are helping Pillar VC build an event guest list. Here is the seed list of guests already on the invite list:
+  const seedSection = (seedMode === 'list')
+    ? `SEED SOURCE: an Affinity list. Use the Affinity tools to find the list whose name best matches: "${listName}". Call get_lists() to see all available list names, then call get_list_entries() on the matching list to fetch its members. If no list matches cleanly, use semantic_search or search_persons to find a relevant set of people based on the name as a topic hint.`
+    : `SEED SOURCE: a list of names provided by the user. Resolve each one in Affinity using search_persons() (search by name or email). Skip any seed person who can't be found in Affinity. If fewer than 3 seed members can be resolved, return a note explaining and stop.\n\nSEED LIST (one per line, "Name, Title, Company"):\n${seedInput}`;
 
-${seedInput}
+  const locationLine = sharedLocation
+    ? `LOCATION FILTER: HARD constraint — every result must be in "${sharedLocation}". Filter using get_person_info location/city/state fields. No exceptions.`
+    : `LOCATION FILTER: not set. Infer geography from the seed pattern if there is one; otherwise no constraint.`;
+  const recencyLine = includeDormant
+    ? `RECENCY: Include dormant contacts. People Pillar has not talked to in 12+ months are eligible (re-engagement mode).`
+    : `RECENCY: Active contacts only. Scope to people Pillar has interacted with in the last 12 months (use last contact date or relationship strength).`;
 
-Your job: search the web to find exactly 10 OTHER real, named people who fit a similar profile to the seed list. Look for similarity across these dimensions:
-- Sector / area of focus (e.g. consumer AI, biotech, dev tools, fintech, climate)
-- Company stage (e.g. early-stage startup, scale-up, public, growth-stage)
-- Title / role type (e.g. founder/CEO, technical co-founder, senior operator, researcher)
-- Geography (if the seed list shows a regional pattern)
+  const prompt = `You are Pillar VC's lookalike search. Find Pillar contacts who are similar to a seed group, drawn from Pillar's Affinity CRM. Do NOT use the open web for discovery — every candidate must come from Affinity. web_search is only used for recency enrichment of finalists.
 
-HARD REQUIREMENTS:
-1. Every person must be a REAL, currently-active human. Use the web_search tool to verify each one — confirm their current company, current role, and that they are not the same person as anyone in the seed list.
-2. Cite at least one source URL per person from your web search results (e.g. their LinkedIn, company About page, recent news).
-3. If you cannot verify someone via web search, do NOT include them. Better to return fewer than 10 verified people than to invent.
-4. Do not include anyone already in the seed list above.
+${seedSection}
 
-OUTPUT FORMAT (CRITICAL):
-ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context, put them in the optional top-level "note" field. Empty list with a note is valid output.
+${locationLine}
+
+${recencyLine}
+
+PROCESS
+1. Resolve the seed people in Affinity (per the seed source above) and pull their attributes (sector, role-type, stage, geography, list memberships) using get_person_info or get_entity_field_values.
+2. Identify the seed pattern — what dimensions do these people share, including which OTHER Affinity lists they tend to appear in? (E.g. "all 18 of 20 are in 'VIP Women' AND 'Experts: Healthcare + AI'.")
+3. Find similar Pillar contacts by: (a) intersecting the lists the seed members commonly appear in, then (b) excluding anyone already in the seed list. Apply the RECENCY rule above (active-only or dormant-included).
+4. Apply the LOCATION FILTER above as a HARD constraint when set. Otherwise use geography inferred from the seed pattern.
+5. Rank by similarity — how many seed dimensions and shared list memberships does each candidate match? Pick up to 10. Aim for diversity (gender, stage, background) within the constraint set.
+6. For each finalist, do 1–2 targeted web_search calls to find what they're up to lately (recent news, role change, fundraise). Hard cap: 2 searches per person, 20 across all 10. This is the ONLY use of web_search.
+
+OUTPUT FORMAT (CRITICAL)
+ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats, put them in the top-level "note" field. The "pattern_summary" field should describe in one sentence what the seed list has in common (sector + role + geo + lists).
 
 \`\`\`json
 {
   "pattern_summary": "one sentence describing what the seed list has in common",
-  "note": "(optional) any caveat, partial-result reason, or suggestion for the user",
+  "note": "(optional) any caveat or context",
   "people": [
     {
       "name": "Full Name",
       "title": "Current Title",
       "company": "Current Company",
-      "linkedin": "https://www.linkedin.com/in/... (omit field entirely if not found)",
-      "location": "City, Region (omit field entirely if not found)",
-      "why": "1-2 sentence reason this person fits the seed pattern",
+      "email": "email (omit field entirely if not in Affinity)",
+      "location": "City, Region (omit field entirely if not in Affinity)",
+      "linkedin": "https://www.linkedin.com/in/... (omit field entirely if not in Affinity)",
+      "lists": ["List name 1", "List name 2"],
+      "pillar_engagement": "Short factual summary from Affinity",
+      "why": "1-2 sentences on similarity to the seed pattern, grounded in Affinity data",
+      "recent_activity": "(optional) what they're up to lately, from web search",
       "sources": ["url1", "url2"]
     }
   ]
@@ -2736,16 +2895,22 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'mcp-client-2025-11-20',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8192,
-        tools: [{
-          type: 'web_search_20250305',
-          name: 'web_search',
-          max_uses: 6
+        mcp_servers: [{
+          type: 'url',
+          url: 'https://mcp.affinity.co/mcp',
+          name: 'affinity',
+          authorization_token: AFFINITY_TOKEN
         }],
+        tools: [
+          { type: 'mcp_toolset', mcp_server_name: 'affinity' },
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 20 }
+        ],
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -2811,17 +2976,31 @@ function renderLookalikes(parsed) {
     const linkedinLink = p.linkedin
       ? `<a href="${escapeLookalikeHtml(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`
       : '';
+    const emailLink = p.email
+      ? `<a href="mailto:${escapeLookalikeHtml(p.email)}">Email</a>`
+      : '';
     const sources = (Array.isArray(p.sources) ? p.sources : [])
       .map((s, i) => `<a href="${escapeLookalikeHtml(s)}" target="_blank" rel="noopener" style="color:#e63329; margin-right:6px;">[${i + 1}]</a>`)
       .join('');
 
-    return `<div class="result-card" data-lookalike-idx="${idx}">
+    const metaParts = [];
+    if (p.email) metaParts.push(`<span><span class="meta-label">Email</span> ${escapeLookalikeHtml(p.email)}</span>`);
+    if (p.location) metaParts.push(`<span><span class="meta-label">Location</span> ${escapeLookalikeHtml(p.location)}</span>`);
+
+    const listChips = (Array.isArray(p.lists) ? p.lists : [])
+      .filter(l => l && String(l).trim())
+      .map(l => `<span style="display:inline-block; background:#F2E8DA; color:#1A1F2E; font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 2px 0;">${escapeLookalikeHtml(l)}</span>`)
+      .join('');
+
+    const pkey = personKey(p);
+    return `<div class="result-card" data-lookalike-idx="${idx}" data-person-key="${escapeLookalikeHtml(pkey)}">
       <div class="card-header">
         <span class="card-rank">${idx + 1}</span>
         <span class="card-name">${escapeLookalikeHtml(p.name || 'Unknown')}</span>
         <span class="card-university">${escapeLookalikeHtml(p.title || '')}${p.company ? ' &middot; ' + escapeLookalikeHtml(p.company) : ''}</span>
         <div class="card-links">
           ${linkedinLink}
+          ${emailLink}
           <label class="card-silence"><input type="checkbox" onchange="toggleLookalikeMute(this)"> Mute</label>
           <div class="card-feedback">
             <button class="thumb-btn thumb-up" onclick="thumbLookalike(this, 'up')" title="Good fit">&#128077;</button>
@@ -2829,11 +3008,23 @@ function renderLookalikes(parsed) {
           </div>
         </div>
       </div>
-      ${p.location ? `<div class="card-meta"><span><span class="meta-label">Location</span> ${escapeLookalikeHtml(p.location)}</span></div>` : ''}
+      ${metaParts.length ? `<div class="card-meta">${metaParts.join('')}</div>` : ''}
       <div class="card-section">
-        <div class="card-section-label">Why a great guest</div>
+        <div class="card-section-label">Why a great match</div>
         <div class="card-section-text">${escapeLookalikeHtml(p.why || '')}</div>
       </div>
+      ${p.pillar_engagement ? `<div class="card-section">
+        <div class="card-section-label">Pillar engagement</div>
+        <div class="card-section-text">${escapeLookalikeHtml(p.pillar_engagement)}</div>
+      </div>` : ''}
+      ${listChips ? `<div class="card-section">
+        <div class="card-section-label">Lists they're in</div>
+        <div class="card-section-text">${listChips}</div>
+      </div>` : ''}
+      ${p.recent_activity ? `<div class="card-section">
+        <div class="card-section-label">Recent activity (web)</div>
+        <div class="card-section-text">${escapeLookalikeHtml(p.recent_activity)}</div>
+      </div>` : ''}
       ${sources ? `<div class="card-section">
         <div class="card-section-label">Sources</div>
         <div class="card-section-text">${sources}</div>
@@ -2842,11 +3033,15 @@ function renderLookalikes(parsed) {
   }).join('');
 
   body.innerHTML = summaryHtml + cards;
+  applyPersistedStateToCards(body);
 }
 
 function toggleLookalikeMute(checkbox) {
   const card = checkbox.closest('.result-card');
-  if (card) card.classList.toggle('silenced', checkbox.checked);
+  if (!card) return;
+  card.classList.toggle('silenced', checkbox.checked);
+  const key = card.getAttribute('data-person-key');
+  if (key) updatePersonState(key, { mute: checkbox.checked });
 }
 
 function thumbLookalike(btn, dir) {
@@ -2855,10 +3050,13 @@ function thumbLookalike(btn, dir) {
   const feedback = card.querySelector('.card-feedback');
   const upBtn = feedback.querySelector('.thumb-up');
   const downBtn = feedback.querySelector('.thumb-down');
+  const key = card.getAttribute('data-person-key');
 
+  // Toggling off — remove active state and clear feedback in the state map
   if (btn.classList.contains('active')) {
     btn.classList.remove('active');
     card.classList.remove('feedback-good', 'feedback-bad');
+    if (key) updatePersonState(key, { feedback: null });
     return;
   }
 
@@ -2868,13 +3066,13 @@ function thumbLookalike(btn, dir) {
 
   btn.classList.add('active');
   card.classList.add(dir === 'up' ? 'feedback-good' : 'feedback-bad');
+  if (key) updatePersonState(key, { feedback: dir });
 
   if (dir === 'down') {
     const comment = prompt('What would have made this person a better fit? (optional, helps refine future searches)');
-    if (comment) {
-      const name = card.querySelector('.card-name')?.textContent || '';
-      console.log('Lookalike feedback:', { name, comment });
-      // TODO: persist feedback when a backend is wired up
+    if (comment && key) {
+      updatePersonState(key, { comment: comment });
+      console.log('Feedback captured:', { key, comment });
     }
   }
 }
