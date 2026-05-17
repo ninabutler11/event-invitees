@@ -1694,10 +1694,14 @@ function commitFeedback(name, university, areas, vote, comment) {
   renderResults();
 }
 
+// Dead code from v1's professor input flow — the profName element was removed
+// in the v2 redesign. Null-guard so the script doesn't throw on load.
 const nameInput = document.getElementById('profName');
-nameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') addProfessor();
-});
+if (nameInput) {
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addProfessor();
+  });
+}
 
 function addProfessor() {
   const name = document.getElementById('profName').value.trim();
