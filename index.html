@@ -2459,14 +2459,16 @@ You have access to Pillar's Affinity CRM via MCP tools. Pillar's Affinity has ri
 - Past events (40+ ZEvent: lists): "ZEvent: 2025 April Healthcare + AI Dinner", "ZEvent: 2024 February Robotics Dinner", etc.
 List names matter \u2014 they encode Pillar's curated taxonomy and pre-filter the candidate pool to high-signal people.
 
-PROCESS
+PROCESS \u2014 designed to be FAST. Minimize tool calls. Total budget: ~15 tool calls.
 1. Parse the event into structured signals: sector(s), role pattern, geography, stage, recency requirement.
-2. Call get_lists() to see Pillar's lists. Identify 1\u20133 lists whose names map to the parsed signals (and ALWAYS prefer list-based filtering over open-ended search when a list cleanly matches). When two lists are both relevant, intersect their members.
-3. Call get_list_entries() on the chosen list(s) to fetch members. Aim for a candidate pool of 30\u2013100 people. If the result is too narrow, broaden by relaxing one filter; if too broad, intersect another list.
-4. For each candidate in the pool, call get_person_info() (or get_entity_field_values) to pull rich data: current title, company, email, LinkedIn URL, location, last contact date, owner, source of intro, sector, programs, expertise. If the data is sparse, lean on relationship strength via get_relationship_strengths().
-5. Apply the Location filter as a HARD constraint when set (every result must be in that geography). Otherwise infer from the event description.
-6. Rank by event fit: sector/topic alignment, role-type match, recency of Pillar engagement, relationship strength, and diversity (gender, stage, background) unless the brief is narrow. Pick the top 10.
-7. For each of the top 10, do 1\u20132 targeted web_search calls for recency: "what is [name] up to lately" \u2014 look for new role, recent fundraise, news mention, recent talk. Hard cap: 2 searches per finalist, 20 total across all 10. This is the ONLY use of web_search; do not use it for discovery.
+2. Call get_lists() ONCE to see Pillar's lists. Identify 1\u20133 lists whose names map to the parsed signals.
+3. Call get_list_entries() on the chosen list(s) \u2014 at most 2\u20133 calls. Each entry already includes basic fields (name, company, title, location). DO NOT call get_person_info on every list member \u2014 work with the slim data from get_list_entries for ranking.
+4. Apply the Location filter as a HARD constraint when set (every result must be in that geography). Otherwise infer from the event description.
+5. Rank with the slim data: sector alignment, role-type match, geography. Pick the top 10 candidates.
+6. ONLY for the top 10 \u2014 call get_person_info() to pull rich data (last contact date, owner, source of intro, programs, etc.). This is at most 10 calls.
+7. For each of the top 10, do 1 targeted web_search for recency. Hard cap: 1 search per finalist, 10 total. This is the ONLY use of web_search.
+
+CRITICAL: do not call get_person_info before ranking. The whole point of the slim-then-rich pattern is speed. If a list returns 80 members, do NOT call get_person_info 80 times \u2014 rank with what you have, then enrich only the 10 you've selected.
 
 OUTPUT FORMAT (CRITICAL)
 ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context (e.g. "intersection returned only 6 \u2014 broadening to single list"), put them in the optional top-level "note" field.
@@ -2513,7 +2515,7 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
         }],
         tools: [
           { type: 'mcp_toolset', mcp_server_name: 'affinity' },
-          { type: 'web_search_20250305', name: 'web_search', max_uses: 20 }
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 10 }
         ],
         messages: [{ role: 'user', content: prompt }]
       })
@@ -2859,13 +2861,15 @@ ${locationLine}
 
 ${recencyLine}
 
-PROCESS
-1. Resolve the seed people in Affinity (per the seed source above) and pull their attributes (sector, role-type, stage, geography, list memberships) using get_person_info or get_entity_field_values.
-2. Identify the seed pattern — what dimensions do these people share, including which OTHER Affinity lists they tend to appear in? (E.g. "all 18 of 20 are in 'VIP Women' AND 'Experts: Healthcare + AI'.")
-3. Find similar Pillar contacts by: (a) intersecting the lists the seed members commonly appear in, then (b) excluding anyone already in the seed list. Apply the RECENCY rule above (active-only or dormant-included).
-4. Apply the LOCATION FILTER above as a HARD constraint when set. Otherwise use geography inferred from the seed pattern.
-5. Rank by similarity — how many seed dimensions and shared list memberships does each candidate match? Pick up to 10. Aim for diversity (gender, stage, background) within the constraint set.
-6. For each finalist, do 1–2 targeted web_search calls to find what they're up to lately (recent news, role change, fundraise). Hard cap: 2 searches per person, 20 across all 10. This is the ONLY use of web_search.
+PROCESS — designed to be FAST. Minimize tool calls. Total budget: ~15 tool calls.
+1. Resolve the seed. For "Affinity list" source: 1 call to get_lists, then 1 call to get_list_entries on the matching list. For paste/CSV: search_persons batch of seed names (at most 5–10 calls — skip people you can't quickly find).
+2. From the seed list entries, identify the seed pattern (sectors, role-types, geography, common Affinity list memberships) — use the slim data already returned. DO NOT call get_person_info on every seed member.
+3. Find similar Pillar contacts by intersecting 1–2 lists the seed members commonly appear in (1–2 get_list_entries calls), excluding seed members.
+4. Apply the LOCATION FILTER above as a HARD constraint when set, then the RECENCY rule. Rank with the slim data on each candidate. Pick the top 10.
+5. ONLY for the top 10 — call get_person_info to pull rich data (last contact, owner, source of intro, programs). At most 10 calls.
+6. For each of the top 10, do 1 targeted web_search call for recency. Hard cap: 1 per finalist, 10 total.
+
+CRITICAL: do not call get_person_info before ranking. Work with slim data from get_list_entries for ranking; enrich only the 10 finalists you've selected.
 
 OUTPUT FORMAT (CRITICAL)
 ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats, put them in the top-level "note" field. The "pattern_summary" field should describe in one sentence what the seed list has in common (sector + role + geo + lists).
@@ -2913,7 +2917,7 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
         }],
         tools: [
           { type: 'mcp_toolset', mcp_server_name: 'affinity' },
-          { type: 'web_search_20250305', name: 'web_search', max_uses: 20 }
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 10 }
         ],
         messages: [{ role: 'user', content: prompt }]
       })
