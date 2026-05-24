@@ -819,6 +819,16 @@
     .input-row { flex-direction: column; }
     .input-row select { width: 100%; }
   }
+
+  .progress-substatus {
+    font-size: 12px;
+    color: #94A3B8;
+    margin-top: 8px;
+    text-align: center;
+    font-style: italic;
+    min-height: 18px;
+    transition: opacity 0.2s;
+  }
 </style>
 </head>
 <body>
@@ -913,6 +923,7 @@
   <div class="progress-section" id="eventProgressSection">
     <div class="progress-bar-container">
       <div class="progress-text">Searching the web and checking Affinity for matches… (this typically takes 60–120 seconds)</div>
+      <div class="progress-substatus" id="eventProgressSubstatus">Starting…</div>
     </div>
   </div>
 
@@ -2458,21 +2469,23 @@ EVENT DETAILS
 ARCHITECTURE — WEB-PRIMARY, AFFINITY-AS-LOOKUP
 
 Step 1: DISCOVERY (web_search is the primary tool).
-Run 8–12 targeted web searches to find 15–20 real, named people who match the event criteria. Pull from press (TechCrunch, The Information, Forbes), LinkedIn, conference speaker programs, recent funding announcements, op-eds, university faculty pages, podcasts. Each candidate must be a real person with a verifiable name + current role + current company. Cast a wide enough net to deliver variety and to surface people Pillar may NOT already be thinking of.
+Run 5–7 targeted web searches to find 10–12 real, named people who match the event criteria. Pull from press (TechCrunch, The Information, Forbes), LinkedIn, conference speaker programs, recent funding announcements, op-eds, university faculty pages, podcasts. Each candidate must be a real person with a verifiable name + current role + current company. Cast a wide enough net to deliver variety and to surface people Pillar may NOT already be thinking of.
 
 Step 2: AFFINITY ENRICHMENT (search_persons only).
 For each unique candidate name, call search_persons EXACTLY ONCE with these parameters: term=full name, with_current_organizations=true, with_interaction_dates=true. Use the response to classify:
 - If a returned person plausibly matches the candidate (name + current org aligns with the company web_search returned) → source: "in_network", and extract the primary_email field from the response — this is the email Nina will use.
 - Otherwise → source: "new". For new people, scan your web_search results for an email address (LinkedIn snippets, company team pages, founder bios often include them). If none surfaces naturally, omit the email field — do NOT guess or fabricate addresses.
 
-CRITICAL Affinity restrictions (these will blow the context window):
-- Use ONLY search_persons. Do NOT call get_lists. Do NOT call get_list_entries. Do NOT call get_person_info. Do NOT call semantic_search. Do NOT call get_company_info. Do NOT call get_company_list_entries. Do NOT call any other Affinity tool.
+CRITICAL Affinity restrictions:
+- During discovery + classification: use ONLY search_persons.
+- AFTER ranking, for each of the 10 finalists whose source is "in_network", call get_person_info ONCE with person_id=their Affinity id and field_ids=["field-4668902"]. This pulls ONLY the "Events Attended (Global)" field — a tiny ~200-byte response. Parse value.data — it's an array of dropdown options (each with a text field) representing past Pillar events the person attended. Pass these through as the events_attended array on that person's output. If value.data is null or empty, omit the field.
+- Do NOT call get_lists. Do NOT call get_list_entries. Do NOT call semantic_search. Do NOT call get_company_info. Do NOT call get_company_list_entries. Do NOT call get_person_info without field_ids — that returns large payloads and will blow context.
 
 Step 3: LOCATION FILTER.
 ${location ? `Hard constraint: every result must be based in or strongly tied to "${location}". No exceptions.` : 'No location specified — infer from event description if applicable, otherwise no constraint.'}
 
 Step 4: RANKING.
-From your 15–20 candidates, pick the top 10. Aim for a healthy mix of in-network and new:
+From your 10–12 candidates, pick the top 10. Aim for a healthy mix of in-network and new:
 - Default target: 6–7 in-network + 3–4 new
 - Skew toward in-network if the event is for re-engagement or warm relationships
 - Skew toward new if the event is in a sector Pillar wants more relationships in
@@ -2494,6 +2507,7 @@ Always return a single JSON code block. Never respond with prose outside the blo
       "linkedin": "https://www.linkedin.com/in/... (omit if unknown)",
       "email": "email address — REQUIRED when available. For in_network: pull primary_email from search_persons. For new: capture from web_search if surfaced. Omit only when neither produced one.",
       "pillar_engagement": "Short factual line for in_network only, e.g. 'In Affinity. Last interaction Mar 2025. Current org: Acme AI.' Omit this field entirely for source=new.",
+      "events_attended": ["ZEvent: 2025 April Healthcare + AI Dinner", "ZEvent: 2024 February Robotics Dinner"],
       "why": "1-2 sentences on why a great guest — their work, recent activity, perspective they'd bring. Grounded in what web_search surfaced.",
       "sources": ["url1", "url2"]
     }
@@ -2504,11 +2518,15 @@ Always return a single JSON code block. Never respond with prose outside the blo
 REMINDERS
 - "source" is REQUIRED on every person. Use exactly "in_network" or "new" (lowercase, with underscore).
 - Email is HIGH VALUE — always include it when you have one. For in_network, the primary_email from search_persons IS the answer. For new, scan web_search results for emails. Never fabricate.
+- Events Attended is HIGH VALUE for Nina (she runs Pillar's events). For every in_network finalist, ALWAYS call get_person_info(person_id, field_ids=["field-4668902"]) after ranking. Extract event names from value.data array — each entry's text field. Pass as events_attended array. If empty, omit the field.
 - Do not invent people. Every candidate must come from a real web_search result.
 - Do not invent Pillar engagement detail. Only fill pillar_engagement for in_network people from what search_persons actually returned (org name, last interaction date). If those fields are empty, write "In Affinity — no recent interaction data."`;
 
+  const substatusEl = document.getElementById('eventProgressSubstatus');
+  if (substatusEl) substatusEl.textContent = 'Starting…';
+
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchAnthropicWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2520,6 +2538,7 @@ REMINDERS
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8192,
+        stream: true,
         mcp_servers: [{
           type: 'url',
           url: 'https://mcp.affinity.co/mcp',
@@ -2528,19 +2547,21 @@ REMINDERS
         }],
         tools: [
           { type: 'mcp_toolset', mcp_server_name: 'affinity' },
-          { type: 'web_search_20250305', name: 'web_search', max_uses: 15 }
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 8 }
         ],
         messages: [{ role: 'user', content: prompt }]
       })
-    });
+    }, function(msg) { if (substatusEl) substatusEl.textContent = msg; });
 
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`API ${response.status}: ${errText.substring(0, 300)}`);
     }
 
-    const data = await response.json();
-    const textBlocks = (data.content || []).filter(b => b.type === 'text');
+    const content = await consumeAnthropicStream(response, function(update) {
+      if (substatusEl) substatusEl.textContent = update.label;
+    });
+    const textBlocks = content.filter(b => b.type === 'text');
     if (textBlocks.length === 0) {
       throw new Error('No text response returned from Claude (only tool calls).');
     }
@@ -2619,6 +2640,12 @@ function renderEventGuests(parsed) {
       .map(l => `<span style="display:inline-block; background:#F2E8DA; color:#1A1F2E; font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 2px 0;">${escapeLookalikeHtml(l)}</span>`)
       .join('');
 
+    // Past Pillar events attended (from Affinity Events Attended (Global) field)
+    const eventsAttendedChips = (Array.isArray(p.events_attended) ? p.events_attended : [])
+      .filter(e => e && String(e).trim())
+      .map(e => `<span style="display:inline-block; background:#E8F4EA; color:#1F6F30; border:1px solid #B9DCC0; font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 2px 0;">${escapeLookalikeHtml(e)}</span>`)
+      .join('');
+
     const pkey = personKey(p);
     return `<div class="result-card" data-event-idx="${idx}" data-person-key="${escapeLookalikeHtml(pkey)}">
       <div class="card-header">
@@ -2647,6 +2674,10 @@ function renderEventGuests(parsed) {
       ${listChips ? `<div class="card-section">
         <div class="card-section-label">Lists they're in</div>
         <div class="card-section-text">${listChips}</div>
+      </div>` : ''}
+      ${eventsAttendedChips ? `<div class="card-section">
+        <div class="card-section-label">Events attended (Pillar)</div>
+        <div class="card-section-text">${eventsAttendedChips}</div>
       </div>` : ''}
       ${p.recent_activity ? `<div class="card-section">
         <div class="card-section-label">Recent activity (web)</div>
@@ -2881,21 +2912,22 @@ ARCHITECTURE — CHARACTERIZE THEN SEARCH WEB, AFFINITY-AS-LOOKUP
 Step 1: CHARACTERIZE the seed pattern in ONE sentence. What do these people have in common — sector, role-type, geography, stage, vibe? Example: "Boston-based consumer AI founders at seed-Series A, mostly technical co-founders, mostly product-led companies." This characterization drives everything downstream.
 
 Step 2: DISCOVERY (web_search is the primary tool).
-Run 8–12 targeted web searches to find 15–20 real, named people who fit the seed pattern AND are NOT in the seed list. Pull from press (TechCrunch, The Information, Forbes), LinkedIn, conference speaker programs, recent funding announcements, op-eds, university faculty pages, podcasts. Each candidate must be a real person with a verifiable name + current role + current company.
+Run 5–7 targeted web searches to find 10–12 real, named people who fit the seed pattern AND are NOT in the seed list. Pull from press (TechCrunch, The Information, Forbes), LinkedIn, conference speaker programs, recent funding announcements, op-eds, university faculty pages, podcasts. Each candidate must be a real person with a verifiable name + current role + current company.
 
 Step 3: AFFINITY ENRICHMENT (search_persons only).
 For each unique candidate name from Step 2, call search_persons EXACTLY ONCE with: term=full name, with_current_organizations=true, with_interaction_dates=true. Classify:
 - If a returned person plausibly matches (name + current org aligns) → source: "in_network", and extract primary_email from the response.
 - Otherwise → source: "new". Scan your web_search results for an email (LinkedIn snippets, company team pages, founder bios). Omit if none surfaces — never fabricate.
 
-CRITICAL Affinity restrictions (these will blow the context window):
-- For non-seed candidates, use ONLY search_persons.
-- Do NOT call get_lists, get_list_entries, get_person_info, semantic_search, get_company_info, get_company_list_entries on candidates. (The seed-list mode above is the only place get_lists + get_list_entries appear, and only ONCE each.)
+CRITICAL Affinity restrictions:
+- For candidates during discovery + classification, use ONLY search_persons.
+- AFTER ranking, for each of the 10 finalists whose source is "in_network", call get_person_info ONCE with person_id=their Affinity id and field_ids=["field-4668902"]. This pulls ONLY the "Events Attended (Global)" field — tiny response. Parse value.data — when populated, it's an array of dropdown options (each with a text field) representing past Pillar events. Pass through as events_attended on that person's output. If null/empty, omit the field.
+- Do NOT call get_lists, get_list_entries, semantic_search, get_company_info, get_company_list_entries for candidates (the seed-list mode is the only place get_lists + get_list_entries appear, ONCE each). Do NOT call get_person_info without field_ids — that returns large payloads.
 
 Step 4: APPLY LOCATION FILTER (above). Hard constraint when set.
 
 Step 5: RANKING.
-From your 15–20 candidates, pick the top 10. Aim for a healthy mix: roughly 6–7 in-network + 3–4 new, unless the seed pattern clearly skews one way. Use your judgment.
+From your 10–12 candidates, pick the top 10. Aim for a healthy mix: roughly 6–7 in-network + 3–4 new, unless the seed pattern clearly skews one way. Use your judgment.
 
 OUTPUT (CRITICAL)
 Always return a single JSON code block. Never respond with prose outside the block. The "pattern_summary" field is required and should be your one-sentence characterization from Step 1.
@@ -2914,6 +2946,7 @@ Always return a single JSON code block. Never respond with prose outside the blo
       "linkedin": "https://www.linkedin.com/in/... (omit if unknown)",
       "email": "email address — REQUIRED when available. For in_network: pull primary_email from search_persons. For new: capture from web_search if surfaced. Omit only when neither produced one.",
       "pillar_engagement": "Short factual line for in_network only, e.g. 'In Affinity. Last interaction Mar 2025. Current org: Acme AI.' Omit this field entirely for source=new.",
+      "events_attended": ["ZEvent: 2025 April Healthcare + AI Dinner", "ZEvent: 2024 February Robotics Dinner"],
       "why": "1-2 sentences on similarity to the seed pattern, grounded in what web_search surfaced about this person.",
       "sources": ["url1", "url2"]
     }
@@ -2924,12 +2957,16 @@ Always return a single JSON code block. Never respond with prose outside the blo
 REMINDERS
 - "source" is REQUIRED on every person. Use exactly "in_network" or "new".
 - Email is HIGH VALUE — always include when you have one. For in_network, primary_email from search_persons IS the answer. For new, scan web_search results. Never fabricate.
+- Events Attended is HIGH VALUE for Nina. For every in_network finalist, ALWAYS call get_person_info(person_id, field_ids=["field-4668902"]) after ranking. Extract event names from value.data array's text fields. Pass as events_attended array. If empty, omit.
 - Do not invent people. Every candidate must come from a real web_search result.
 - Do not include anyone who is already in the seed list.
 - Do not invent Pillar engagement detail. Only fill pillar_engagement from what search_persons actually returned.`;
 
+  const substatusElL = document.getElementById('lookalikeProgressSubstatus');
+  if (substatusElL) substatusElL.textContent = 'Starting…';
+
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchAnthropicWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2941,6 +2978,7 @@ REMINDERS
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8192,
+        stream: true,
         mcp_servers: [{
           type: 'url',
           url: 'https://mcp.affinity.co/mcp',
@@ -2949,19 +2987,21 @@ REMINDERS
         }],
         tools: [
           { type: 'mcp_toolset', mcp_server_name: 'affinity' },
-          { type: 'web_search_20250305', name: 'web_search', max_uses: 15 }
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 8 }
         ],
         messages: [{ role: 'user', content: prompt }]
       })
-    });
+    }, function(msg) { if (substatusElL) substatusElL.textContent = msg; });
 
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`API ${response.status}: ${errText.substring(0, 300)}`);
     }
 
-    const data = await response.json();
-    const textBlocks = (data.content || []).filter(b => b.type === 'text');
+    const content = await consumeAnthropicStream(response, function(update) {
+      if (substatusElL) substatusElL.textContent = update.label;
+    });
+    const textBlocks = content.filter(b => b.type === 'text');
     if (textBlocks.length === 0) {
       throw new Error('No text response returned from Claude (only tool calls).');
     }
@@ -3033,6 +3073,12 @@ function renderLookalikes(parsed) {
       .map(l => `<span style="display:inline-block; background:#F2E8DA; color:#1A1F2E; font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 2px 0;">${escapeLookalikeHtml(l)}</span>`)
       .join('');
 
+    // Past Pillar events attended (from Affinity Events Attended (Global) field)
+    const eventsAttendedChips = (Array.isArray(p.events_attended) ? p.events_attended : [])
+      .filter(e => e && String(e).trim())
+      .map(e => `<span style="display:inline-block; background:#E8F4EA; color:#1F6F30; border:1px solid #B9DCC0; font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 2px 0;">${escapeLookalikeHtml(e)}</span>`)
+      .join('');
+
     const pkey = personKey(p);
     return `<div class="result-card" data-lookalike-idx="${idx}" data-person-key="${escapeLookalikeHtml(pkey)}">
       <div class="card-header">
@@ -3061,6 +3107,10 @@ function renderLookalikes(parsed) {
       ${listChips ? `<div class="card-section">
         <div class="card-section-label">Lists they're in</div>
         <div class="card-section-text">${listChips}</div>
+      </div>` : ''}
+      ${eventsAttendedChips ? `<div class="card-section">
+        <div class="card-section-label">Events attended (Pillar)</div>
+        <div class="card-section-text">${eventsAttendedChips}</div>
       </div>` : ''}
       ${p.recent_activity ? `<div class="card-section">
         <div class="card-section-label">Recent activity (web)</div>
@@ -3333,6 +3383,165 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+
+// =========================================================================
+// SSE stream consumer for the Anthropic Messages API.
+// Reads the chunked event stream, accumulates content blocks the way
+// the non-streaming response.json() would, and fires onUpdate(update)
+// callbacks with human-readable labels for the UX progress sub-line.
+// =========================================================================
+
+// =========================================================================
+// Anthropic fetch with 429 retry-with-backoff.
+// Reads `retry-after` header (seconds) and waits before retrying.
+// Surfaces a countdown to the UI via onStatus().
+// Max retries: 5 (after that, throws so the search fails gracefully).
+// =========================================================================
+async function fetchAnthropicWithRetry(url, options, onStatus, maxRetries) {
+  maxRetries = (typeof maxRetries === 'number') ? maxRetries : 5;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.status !== 429) return response;
+
+    // 429: read retry-after, surface to UI, sleep, retry.
+    let retryAfter = parseInt(response.headers.get('retry-after') || '30', 10);
+    if (isNaN(retryAfter) || retryAfter < 1) retryAfter = 30;
+    // Sanity cap to avoid absurdly long waits
+    if (retryAfter > 120) retryAfter = 120;
+
+    // Consume the body so the connection cleans up
+    try { await response.text(); } catch (e) {}
+
+    if (attempt === maxRetries) {
+      const err = new Error('API 429: rate limit exceeded after ' + maxRetries + ' retries. Add credits to your Anthropic account or wait for tier upgrade.');
+      err.status = 429;
+      throw err;
+    }
+
+    // Countdown updates
+    let remaining = retryAfter;
+    if (onStatus) {
+      onStatus('Rate limit hit — retrying in ' + remaining + 's (attempt ' + (attempt + 1) + ' of ' + maxRetries + ')…');
+    }
+    const startTime = Date.now();
+    const tickInterval = setInterval(function() {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const left = Math.max(0, retryAfter - elapsed);
+      if (onStatus && left > 0) {
+        onStatus('Rate limit hit — retrying in ' + left + 's (attempt ' + (attempt + 1) + ' of ' + maxRetries + ')…');
+      }
+    }, 1000);
+
+    await new Promise(function(resolve) { setTimeout(resolve, retryAfter * 1000); });
+    clearInterval(tickInterval);
+    if (onStatus) onStatus('Retrying…');
+  }
+}
+
+async function consumeAnthropicStream(response, onUpdate) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const content = [];        // final assembled content blocks
+  let currentBlock = null;   // block being built
+  let currentInputJson = ''; // accumulator for tool_use input_json_delta
+
+  const update = (label) => {
+    try { onUpdate && onUpdate({ label }); } catch (e) {}
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE messages are separated by a blank line (\n\n)
+    const messages = buffer.split('\n\n');
+    buffer = messages.pop() || '';
+
+    for (const msg of messages) {
+      if (!msg.trim()) continue;
+      let dataStr = '';
+      for (const line of msg.split('\n')) {
+        if (line.startsWith('data: ')) dataStr += line.slice(6);
+      }
+      if (!dataStr) continue;
+      let data;
+      try { data = JSON.parse(dataStr); } catch (e) { continue; }
+
+      switch (data.type) {
+        case 'content_block_start': {
+          const block = data.content_block || {};
+          currentBlock = Object.assign({}, block);
+          currentInputJson = '';
+          // Initial heads-up that a block has started; we'll refine when
+          // we know the tool input.
+          if (block.type === 'tool_use' || block.type === 'mcp_tool_use') {
+            const niceName = block.name || 'a tool';
+            update('Calling ' + niceName + '…');
+          } else if (block.type === 'server_tool_use') {
+            update(block.name === 'web_search' ? 'Searching the web…' : ('Calling ' + (block.name || 'tool') + '…'));
+          } else if (block.type === 'text') {
+            update('Thinking through the results…');
+          } else if (block.type === 'thinking') {
+            update('Reasoning…');
+          } else if (block.type === 'mcp_tool_result' || block.type === 'web_search_tool_result') {
+            update('Processing results…');
+          }
+          break;
+        }
+        case 'content_block_delta': {
+          const delta = data.delta || {};
+          if (!currentBlock) break;
+          if (delta.type === 'text_delta') {
+            currentBlock.text = (currentBlock.text || '') + (delta.text || '');
+          } else if (delta.type === 'input_json_delta') {
+            currentInputJson += (delta.partial_json || '');
+          } else if (delta.type === 'thinking_delta') {
+            currentBlock.thinking = (currentBlock.thinking || '') + (delta.thinking || '');
+          }
+          break;
+        }
+        case 'content_block_stop': {
+          if (currentBlock) {
+            const t = currentBlock.type;
+            if ((t === 'tool_use' || t === 'mcp_tool_use' || t === 'server_tool_use') && currentInputJson) {
+              try { currentBlock.input = JSON.parse(currentInputJson); } catch (e) {}
+              const input = currentBlock.input || {};
+              let label = 'Calling ' + (currentBlock.name || 'tool') + '…';
+              if (currentBlock.name === 'web_search' && input.query) {
+                label = 'Searched: \"' + String(input.query).slice(0, 70) + '\"';
+              } else if (currentBlock.name === 'search_persons' && input.term) {
+                label = 'Checking Affinity for: ' + String(input.term).slice(0, 60);
+              } else if (currentBlock.name === 'get_lists') {
+                label = 'Pulling Affinity lists…';
+              } else if (currentBlock.name === 'get_list_entries') {
+                label = 'Reading seed list…';
+              } else if (currentBlock.name === 'get_person_info' && input.person_id) {
+                label = 'Loading person details…';
+              }
+              update(label);
+            }
+            content.push(currentBlock);
+          }
+          currentBlock = null;
+          currentInputJson = '';
+          break;
+        }
+        case 'message_start':
+        case 'message_delta':
+        case 'message_stop':
+        case 'ping':
+        default:
+          // ignore
+          break;
+      }
+    }
+  }
+  update('Compiling results…');
+  return content;
+}
 
 </script>
 
