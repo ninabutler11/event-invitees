@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Event Guest List Generator — Pillar VC</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -32,14 +34,9 @@
   .logo {
     width: 36px;
     height: 36px;
-    background: #e63329;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 18px;
-    color: white;
+    display: block;
+    object-fit: contain;
+    flex-shrink: 0;
   }
 
   .header h1 {
@@ -829,7 +826,7 @@
 <!-- API Key Entry Screen (shown after password if no saved key in this browser) -->
 <div id="apiKeyScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:none;align-items:center;justify-content:center;z-index:9998;">
   <div style="text-align:center; max-width:520px; padding:0 20px;">
-    <div style="width:48px;height:48px;background:#e63329;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:white;margin:0 auto 16px;">P</div>
+    <img src="logo.png" alt="Pillar VC" style="width:48px;height:48px;display:block;object-fit:contain;margin:0 auto 16px;" />
     <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Add your Anthropic API key</h2>
     <p style="color:#64748B;font-size:13px;margin-bottom:6px;line-height:1.5;">This tool uses your own Anthropic key to make API calls. Your key is stored only in this browser's localStorage and is sent only to api.anthropic.com.</p>
     <p style="color:#94A3B8;font-size:12px;margin-bottom:24px;">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#e63329;text-decoration:none;">console.anthropic.com</a> &middot; format: <code style="background:#F2E8DA;padding:1px 5px;border-radius:3px;">sk-ant-api03-...</code></p>
@@ -844,7 +841,7 @@
 <!-- Affinity Token Entry Screen (shown after Anthropic key if no saved Affinity token in this browser) -->
 <div id="affinityTokenScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:none;align-items:center;justify-content:center;z-index:9997;">
   <div style="text-align:center; max-width:520px; padding:0 20px;">
-    <div style="width:48px;height:48px;background:#e63329;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:white;margin:0 auto 16px;">P</div>
+    <img src="logo.png" alt="Pillar VC" style="width:48px;height:48px;display:block;object-fit:contain;margin:0 auto 16px;" />
     <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Add your Affinity API key</h2>
     <p style="color:#64748B;font-size:13px;margin-bottom:6px;line-height:1.5;">This tool queries Pillar's Affinity CRM through the Affinity MCP server (<code style="background:#F2E8DA;padding:1px 5px;border-radius:3px;">mcp.affinity.co/mcp</code>) using your own API key. Your key is stored only in this browser's localStorage.</p>
     <p style="color:#94A3B8;font-size:12px;margin-bottom:24px;">Generate one at Affinity &rarr; Settings &rarr; Manage Apps &rarr; <strong>+ New App</strong>. You'll only see the key once &mdash; save it somewhere safe.</p>
@@ -859,7 +856,7 @@
 <!-- Password Screen -->
 <div id="passwordScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:flex;align-items:center;justify-content:center;z-index:9999;">
   <div style="text-align:center;">
-    <div style="width:48px;height:48px;background:#e63329;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:white;margin:0 auto 16px;">P</div>
+    <img src="logo.png" alt="Pillar VC" style="width:48px;height:48px;display:block;object-fit:contain;margin:0 auto 16px;" />
     <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Event Guest List Generator</h2>
     <p style="color:#64748B;font-size:13px;margin-bottom:24px;">Enter password to continue</p>
     <div style="display:flex;gap:8px;justify-content:center;">
@@ -873,7 +870,7 @@
 <div id="appContent" style="display:none;">
 <div class="header">
   <div class="header-left">
-    <div class="logo">P</div>
+    <img src="logo.png" alt="Pillar VC" class="logo" />
     <h1>Event Guest List Generator <span>by Pillar VC</span></h1>
   </div>
   <div class="header-right" style="display:flex;gap:8px;">
@@ -918,7 +915,7 @@
 
   <div class="progress-section" id="eventProgressSection">
     <div class="progress-bar-container">
-      <div class="progress-text">Querying Affinity for matching contacts and ranking by event fit… (45–90 seconds)</div>
+      <div class="progress-text">Searching the web and checking Affinity for matches… (this typically takes 60–120 seconds)</div>
     </div>
   </div>
 
@@ -2442,57 +2439,63 @@ async function generateEventGuests() {
   resultsSection.classList.remove('active');
   resultsBody.innerHTML = '';
 
-  const prompt = `You are Pillar VC's event guest list generator. Your job: produce a ranked list of up to 10 real Pillar contacts who'd be ideal guests for the event below. Every candidate must come from Pillar's Affinity CRM \u2014 do NOT invent people, and do NOT pull from the open web for discovery (web_search is only for recency enrichment of finalists).
+  const prompt = `You are Pillar VC's event guest list generator. Find 10 real people who'd be ideal guests for the event below. The output is a mix of people already in Pillar's Affinity network AND new people Pillar should get to know. Both kinds of guests are valuable.
 
 EVENT DETAILS
 - Location: ${location || 'not specified'}
 - Event description: ${description || 'not specified'}
 - Attributes of ideal guest: ${attributes || 'not specified'}
-- Recency mode: ${includeDormant ? 'Include dormant contacts (people Pillar has not talked to in 12+ months are eligible — re-engagement mode).' : 'Active contacts only (people Pillar has interacted with in the last 12 months).'}
 
-DATA SOURCE
-You have access to Pillar's Affinity CRM via MCP tools. Pillar's Affinity has rich domain organization \u2014 many curated lists encoding sectors, geographies, programs, and past events. Some example list names you'll find:
-- Sector / topic: "Expert Bench: Robotics", "Expert Bench: Semiconductors", "Experts: Healthcare + AI", "Expert List: AI (aka AI for Science Advisors)", "EXPERTS: Insurance"
-- Geography / demographic: "Boston Women Venture Backed Companies", "Venture Backed Women CEOs in Boston", "CEOs in London", "VIP Women"
-- Stage / role: "Portfolio Founders", "VCs", "Investor Network", "Reporters", "Scouts", "Pillar Anti-Portfolio (CEOs)"
-- Programs: "ZProgram: All Frequency Cohorts", "Founding Pillars", "Venture Associates"
-- Past events (40+ ZEvent: lists): "ZEvent: 2025 April Healthcare + AI Dinner", "ZEvent: 2024 February Robotics Dinner", etc.
-List names matter \u2014 they encode Pillar's curated taxonomy and pre-filter the candidate pool to high-signal people.
+ARCHITECTURE — WEB-PRIMARY, AFFINITY-AS-LOOKUP
 
-PROCESS \u2014 designed to be FAST. Minimize tool calls. Total budget: ~15 tool calls.
-1. Parse the event into structured signals: sector(s), role pattern, geography, stage, recency requirement.
-2. Call get_lists() ONCE to see Pillar's lists. Identify 1\u20133 lists whose names map to the parsed signals.
-3. Call get_list_entries() on the chosen list(s) \u2014 at most 2\u20133 calls. Each entry already includes basic fields (name, company, title, location). DO NOT call get_person_info on every list member \u2014 work with the slim data from get_list_entries for ranking.
-4. Apply the Location filter as a HARD constraint when set (every result must be in that geography). Otherwise infer from the event description.
-5. Rank with the slim data: sector alignment, role-type match, geography. Pick the top 10 candidates.
-6. ONLY for the top 10 \u2014 call get_person_info() to pull rich data (last contact date, owner, source of intro, programs, etc.). This is at most 10 calls.
-7. For each of the top 10, do 1 targeted web_search for recency. Hard cap: 1 search per finalist, 10 total. This is the ONLY use of web_search.
+Step 1: DISCOVERY (web_search is the primary tool).
+Run 8–12 targeted web searches to find 15–20 real, named people who match the event criteria. Pull from press (TechCrunch, The Information, Forbes), LinkedIn, conference speaker programs, recent funding announcements, op-eds, university faculty pages, podcasts. Each candidate must be a real person with a verifiable name + current role + current company. Cast a wide enough net to deliver variety and to surface people Pillar may NOT already be thinking of.
 
-CRITICAL: do not call get_person_info before ranking. The whole point of the slim-then-rich pattern is speed. If a list returns 80 members, do NOT call get_person_info 80 times \u2014 rank with what you have, then enrich only the 10 you've selected.
+Step 2: AFFINITY ENRICHMENT (search_persons only).
+For each unique candidate name, call search_persons EXACTLY ONCE with these parameters: term=full name, with_current_organizations=true, with_interaction_dates=true. Use the response to classify:
+- If a returned person plausibly matches the candidate (name + current org aligns with the company web_search returned) → source: "in_network"
+- Otherwise → source: "new"
 
-OUTPUT FORMAT (CRITICAL)
-ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats or context (e.g. "intersection returned only 6 \u2014 broadening to single list"), put them in the optional top-level "note" field.
+CRITICAL Affinity restrictions (these will blow the context window):
+- Use ONLY search_persons. Do NOT call get_lists. Do NOT call get_list_entries. Do NOT call get_person_info. Do NOT call semantic_search. Do NOT call get_company_info. Do NOT call get_company_list_entries. Do NOT call any other Affinity tool.
+
+Step 3: LOCATION FILTER.
+${location ? `Hard constraint: every result must be based in or strongly tied to "${location}". No exceptions.` : 'No location specified — infer from event description if applicable, otherwise no constraint.'}
+
+Step 4: RANKING.
+From your 15–20 candidates, pick the top 10. Aim for a healthy mix of in-network and new:
+- Default target: 6–7 in-network + 3–4 new
+- Skew toward in-network if the event is for re-engagement or warm relationships
+- Skew toward new if the event is in a sector Pillar wants more relationships in
+Use your judgment based on the event description.
+
+OUTPUT (CRITICAL)
+Always return a single JSON code block. Never respond with prose outside the block. If you need to caveat anything (e.g. "web_search returned only 8 strong candidates"), use the optional top-level "note" field.
 
 \`\`\`json
 {
-  "note": "(optional) any caveat, partial-result reason, or suggestion for the user",
+  "note": "(optional) caveat or context for Nina",
   "people": [
     {
       "name": "Full Name",
       "title": "Current Title",
       "company": "Current Company",
-      "email": "email (omit field entirely if not in Affinity)",
-      "location": "City, Region (omit field entirely if not in Affinity)",
-      "linkedin": "https://www.linkedin.com/in/... (omit field entirely if not in Affinity)",
-      "lists": ["List name 1", "List name 2"],
-      "pillar_engagement": "Short factual summary from Affinity, e.g. 'Last met with Parker Mar 15. Introduced by Andy Palmer. In Frequency 2024 cohort.'",
-      "why": "1-2 sentences on why this person fits the event, grounded in their Affinity data",
-      "recent_activity": "(optional) what they're up to lately, from web search",
+      "source": "in_network",
+      "location": "City, Region (omit if unknown)",
+      "linkedin": "https://www.linkedin.com/in/... (omit if unknown)",
+      "email": "email (omit unless in Affinity)",
+      "pillar_engagement": "Short factual line for in_network only, e.g. 'In Affinity. Last interaction Mar 2025. Current org: Acme AI.' Omit this field entirely for source=new.",
+      "why": "1-2 sentences on why a great guest — their work, recent activity, perspective they'd bring. Grounded in what web_search surfaced.",
       "sources": ["url1", "url2"]
     }
   ]
 }
-\`\`\``;
+\`\`\`
+
+REMINDERS
+- "source" is REQUIRED on every person. Use exactly "in_network" or "new" (lowercase, with underscore).
+- Do not invent people. Every candidate must come from a real web_search result.
+- Do not invent Pillar engagement detail. Only fill pillar_engagement for in_network people from what search_persons actually returned (org name, last interaction date). If those fields are empty, write "In Affinity — no recent interaction data."`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2515,7 +2518,7 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
         }],
         tools: [
           { type: 'mcp_toolset', mcp_server_name: 'affinity' },
-          { type: 'web_search_20250305', name: 'web_search', max_uses: 10 }
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 15 }
         ],
         messages: [{ role: 'user', content: prompt }]
       })
@@ -2609,7 +2612,7 @@ function renderEventGuests(parsed) {
     return `<div class="result-card" data-event-idx="${idx}" data-person-key="${escapeLookalikeHtml(pkey)}">
       <div class="card-header">
         <span class="card-rank">${idx + 1}</span>
-        <span class="card-name">${escapeLookalikeHtml(p.name || 'Unknown')}</span>
+        <span class="card-name">${escapeLookalikeHtml(p.name || 'Unknown')}</span>${p.source ? `<span style="display:inline-block;font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;letter-spacing:0.3px;text-transform:uppercase;${p.source === 'in_network' ? 'background:#E8F4EA;color:#1F6F30;border:1px solid #B9DCC0;' : 'background:#FFF0DC;color:#8B5A1F;border:1px solid #E8C896;'}">${p.source === 'in_network' ? 'In Affinity' : 'New'}</span>` : ''}
         <span class="card-university">${escapeLookalikeHtml(p.title || '')}${p.company ? ' &middot; ' + escapeLookalikeHtml(p.company) : ''}</span>
         <div class="card-links">
           ${linkedinLink}
@@ -2837,64 +2840,81 @@ async function findLookalikes() {
 
   btn.disabled = true;
   btn.textContent = 'Searching…';
-  if (progressText) progressText.textContent = 'Resolving seed in Affinity, finding similar contacts, and ranking… (45–90 seconds)';
+  if (progressText) progressText.textContent = 'Characterizing the seed, searching the web for similar people, and checking Affinity… (typically 60–120 seconds)';
   progressSection.classList.add('active');
   resultsSection.classList.remove('active');
   resultsBody.innerHTML = '';
 
   const seedSection = (seedMode === 'list')
-    ? `SEED SOURCE: an Affinity list. Use the Affinity tools to find the list whose name best matches: "${listName}". Call get_lists() to see all available list names, then call get_list_entries() on the matching list to fetch its members. If no list matches cleanly, use semantic_search or search_persons to find a relevant set of people based on the name as a topic hint.`
-    : `SEED SOURCE: a list of names provided by the user. Resolve each one in Affinity using search_persons() (search by name or email). Skip any seed person who can't be found in Affinity. If fewer than 3 seed members can be resolved, return a note explaining and stop.\n\nSEED LIST (one per line, "Name, Title, Company"):\n${seedInput}`;
+    ? `SEED SOURCE: an Affinity list named "${listName}". To resolve it:
+1. Call get_lists ONCE to see all available list names and their IDs.
+2. Call get_list_entries ONCE on the matching list with limit=30 and field_types=["list"]. This returns slim data — enough to characterize the seed pattern. Do NOT paginate further. Do NOT call get_person_info on seed members.
+If the list name doesn't match cleanly, return a JSON note explaining and pick the closest match.`
+    : `SEED SOURCE: a list of names provided by the user. Use these directly as the seed pattern — do NOT call Affinity to resolve them.
+
+SEED LIST (one per line, "Name, Title, Company"):
+${seedInput}`;
 
   const locationLine = sharedLocation
-    ? `LOCATION FILTER: HARD constraint — every result must be in "${sharedLocation}". Filter using get_person_info location/city/state fields. No exceptions.`
-    : `LOCATION FILTER: not set. Infer geography from the seed pattern if there is one; otherwise no constraint.`;
-  const recencyLine = includeDormant
-    ? `RECENCY: Include dormant contacts. People Pillar has not talked to in 12+ months are eligible (re-engagement mode).`
-    : `RECENCY: Active contacts only. Scope to people Pillar has interacted with in the last 12 months (use last contact date or relationship strength).`;
+    ? `LOCATION FILTER: hard constraint — every result must be based in or strongly tied to "${sharedLocation}".`
+    : `LOCATION FILTER: not set. Infer from the seed pattern if there is one, otherwise no constraint.`;
 
-  const prompt = `You are Pillar VC's lookalike search. Find Pillar contacts who are similar to a seed group, drawn from Pillar's Affinity CRM. Do NOT use the open web for discovery — every candidate must come from Affinity. web_search is only used for recency enrichment of finalists.
+  const prompt = `You are Pillar VC's lookalike search. Given a seed group of people, find 10 OTHER real people who match the seed's pattern. The output is a mix of people already in Pillar's Affinity network AND new people Pillar should get to know. Both kinds are valuable.
 
 ${seedSection}
 
 ${locationLine}
 
-${recencyLine}
+ARCHITECTURE — CHARACTERIZE THEN SEARCH WEB, AFFINITY-AS-LOOKUP
 
-PROCESS — designed to be FAST. Minimize tool calls. Total budget: ~15 tool calls.
-1. Resolve the seed. For "Affinity list" source: 1 call to get_lists, then 1 call to get_list_entries on the matching list. For paste/CSV: search_persons batch of seed names (at most 5–10 calls — skip people you can't quickly find).
-2. From the seed list entries, identify the seed pattern (sectors, role-types, geography, common Affinity list memberships) — use the slim data already returned. DO NOT call get_person_info on every seed member.
-3. Find similar Pillar contacts by intersecting 1–2 lists the seed members commonly appear in (1–2 get_list_entries calls), excluding seed members.
-4. Apply the LOCATION FILTER above as a HARD constraint when set, then the RECENCY rule. Rank with the slim data on each candidate. Pick the top 10.
-5. ONLY for the top 10 — call get_person_info to pull rich data (last contact, owner, source of intro, programs). At most 10 calls.
-6. For each of the top 10, do 1 targeted web_search call for recency. Hard cap: 1 per finalist, 10 total.
+Step 1: CHARACTERIZE the seed pattern in ONE sentence. What do these people have in common — sector, role-type, geography, stage, vibe? Example: "Boston-based consumer AI founders at seed-Series A, mostly technical co-founders, mostly product-led companies." This characterization drives everything downstream.
 
-CRITICAL: do not call get_person_info before ranking. Work with slim data from get_list_entries for ranking; enrich only the 10 finalists you've selected.
+Step 2: DISCOVERY (web_search is the primary tool).
+Run 8–12 targeted web searches to find 15–20 real, named people who fit the seed pattern AND are NOT in the seed list. Pull from press (TechCrunch, The Information, Forbes), LinkedIn, conference speaker programs, recent funding announcements, op-eds, university faculty pages, podcasts. Each candidate must be a real person with a verifiable name + current role + current company.
 
-OUTPUT FORMAT (CRITICAL)
-ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. NEVER respond with prose outside the JSON block. If you have caveats, put them in the top-level "note" field. The "pattern_summary" field should describe in one sentence what the seed list has in common (sector + role + geo + lists).
+Step 3: AFFINITY ENRICHMENT (search_persons only).
+For each unique candidate name from Step 2, call search_persons EXACTLY ONCE with: term=full name, with_current_organizations=true, with_interaction_dates=true. Classify:
+- If a returned person plausibly matches the candidate (name + current org aligns) → source: "in_network"
+- Otherwise → source: "new"
+
+CRITICAL Affinity restrictions (these will blow the context window):
+- For non-seed candidates, use ONLY search_persons.
+- Do NOT call get_lists, get_list_entries, get_person_info, semantic_search, get_company_info, get_company_list_entries on candidates. (The seed-list mode above is the only place get_lists + get_list_entries appear, and only ONCE each.)
+
+Step 4: APPLY LOCATION FILTER (above). Hard constraint when set.
+
+Step 5: RANKING.
+From your 15–20 candidates, pick the top 10. Aim for a healthy mix: roughly 6–7 in-network + 3–4 new, unless the seed pattern clearly skews one way. Use your judgment.
+
+OUTPUT (CRITICAL)
+Always return a single JSON code block. Never respond with prose outside the block. The "pattern_summary" field is required and should be your one-sentence characterization from Step 1.
 
 \`\`\`json
 {
-  "pattern_summary": "one sentence describing what the seed list has in common",
-  "note": "(optional) any caveat or context",
+  "pattern_summary": "one sentence describing the seed's commonalities",
+  "note": "(optional) caveat or context for Nina",
   "people": [
     {
       "name": "Full Name",
       "title": "Current Title",
       "company": "Current Company",
-      "email": "email (omit field entirely if not in Affinity)",
-      "location": "City, Region (omit field entirely if not in Affinity)",
-      "linkedin": "https://www.linkedin.com/in/... (omit field entirely if not in Affinity)",
-      "lists": ["List name 1", "List name 2"],
-      "pillar_engagement": "Short factual summary from Affinity",
-      "why": "1-2 sentences on similarity to the seed pattern, grounded in Affinity data",
-      "recent_activity": "(optional) what they're up to lately, from web search",
+      "source": "in_network",
+      "location": "City, Region (omit if unknown)",
+      "linkedin": "https://www.linkedin.com/in/... (omit if unknown)",
+      "email": "email (omit unless in Affinity)",
+      "pillar_engagement": "Short factual line for in_network only, e.g. 'In Affinity. Last interaction Mar 2025. Current org: Acme AI.' Omit this field entirely for source=new.",
+      "why": "1-2 sentences on similarity to the seed pattern, grounded in what web_search surfaced about this person.",
       "sources": ["url1", "url2"]
     }
   ]
 }
-\`\`\``;
+\`\`\`
+
+REMINDERS
+- "source" is REQUIRED on every person. Use exactly "in_network" or "new".
+- Do not invent people. Every candidate must come from a real web_search result.
+- Do not include anyone who is already in the seed list.
+- Do not invent Pillar engagement detail. Only fill pillar_engagement from what search_persons actually returned.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2917,7 +2937,7 @@ ALWAYS return a JSON code block, even if you can only verify 3, 5, or 7 people. 
         }],
         tools: [
           { type: 'mcp_toolset', mcp_server_name: 'affinity' },
-          { type: 'web_search_20250305', name: 'web_search', max_uses: 10 }
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 15 }
         ],
         messages: [{ role: 'user', content: prompt }]
       })
@@ -3004,7 +3024,7 @@ function renderLookalikes(parsed) {
     return `<div class="result-card" data-lookalike-idx="${idx}" data-person-key="${escapeLookalikeHtml(pkey)}">
       <div class="card-header">
         <span class="card-rank">${idx + 1}</span>
-        <span class="card-name">${escapeLookalikeHtml(p.name || 'Unknown')}</span>
+        <span class="card-name">${escapeLookalikeHtml(p.name || 'Unknown')}</span>${p.source ? `<span style="display:inline-block;font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;letter-spacing:0.3px;text-transform:uppercase;${p.source === 'in_network' ? 'background:#E8F4EA;color:#1F6F30;border:1px solid #B9DCC0;' : 'background:#FFF0DC;color:#8B5A1F;border:1px solid #E8C896;'}">${p.source === 'in_network' ? 'In Affinity' : 'New'}</span>` : ''}
         <span class="card-university">${escapeLookalikeHtml(p.title || '')}${p.company ? ' &middot; ' + escapeLookalikeHtml(p.company) : ''}</span>
         <div class="card-links">
           ${linkedinLink}
