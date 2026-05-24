@@ -826,7 +826,6 @@
 <!-- API Key Entry Screen (shown after password if no saved key in this browser) -->
 <div id="apiKeyScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:none;align-items:center;justify-content:center;z-index:9998;">
   <div style="text-align:center; max-width:520px; padding:0 20px;">
-    <img src="logo.png" alt="Pillar VC" style="width:48px;height:48px;display:block;object-fit:contain;margin:0 auto 16px;" />
     <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Add your Anthropic API key</h2>
     <p style="color:#64748B;font-size:13px;margin-bottom:6px;line-height:1.5;">This tool uses your own Anthropic key to make API calls. Your key is stored only in this browser's localStorage and is sent only to api.anthropic.com.</p>
     <p style="color:#94A3B8;font-size:12px;margin-bottom:24px;">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#e63329;text-decoration:none;">console.anthropic.com</a> &middot; format: <code style="background:#F2E8DA;padding:1px 5px;border-radius:3px;">sk-ant-api03-...</code></p>
@@ -841,7 +840,6 @@
 <!-- Affinity Token Entry Screen (shown after Anthropic key if no saved Affinity token in this browser) -->
 <div id="affinityTokenScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:none;align-items:center;justify-content:center;z-index:9997;">
   <div style="text-align:center; max-width:520px; padding:0 20px;">
-    <img src="logo.png" alt="Pillar VC" style="width:48px;height:48px;display:block;object-fit:contain;margin:0 auto 16px;" />
     <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Add your Affinity API key</h2>
     <p style="color:#64748B;font-size:13px;margin-bottom:6px;line-height:1.5;">This tool queries Pillar's Affinity CRM through the Affinity MCP server (<code style="background:#F2E8DA;padding:1px 5px;border-radius:3px;">mcp.affinity.co/mcp</code>) using your own API key. Your key is stored only in this browser's localStorage.</p>
     <p style="color:#94A3B8;font-size:12px;margin-bottom:24px;">Generate one at Affinity &rarr; Settings &rarr; Manage Apps &rarr; <strong>+ New App</strong>. You'll only see the key once &mdash; save it somewhere safe.</p>
@@ -856,7 +854,6 @@
 <!-- Password Screen -->
 <div id="passwordScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFFAF5;display:flex;align-items:center;justify-content:center;z-index:9999;">
   <div style="text-align:center;">
-    <img src="logo.png" alt="Pillar VC" style="width:48px;height:48px;display:block;object-fit:contain;margin:0 auto 16px;" />
     <h2 style="color:#1A1F2E;font-size:20px;margin-bottom:6px;">Event Guest List Generator</h2>
     <p style="color:#64748B;font-size:13px;margin-bottom:24px;">Enter password to continue</p>
     <div style="display:flex;gap:8px;justify-content:center;">
@@ -870,10 +867,10 @@
 <div id="appContent" style="display:none;">
 <div class="header">
   <div class="header-left">
-    <img src="logo.png" alt="Pillar VC" class="logo" />
     <h1>Event Guest List Generator <span>by Pillar VC</span></h1>
   </div>
   <div class="header-right" style="display:flex;gap:8px;">
+    <button onclick="openPastSearchesModal()" style="background:#1A1F2E;border:1px solid #1A1F2E;color:#FFFFFF;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;" title="Browse and re-open searches you've saved">Past searches</button>
     <button onclick="clearApiKey()" style="background:none;border:1px solid #E8DCC9;color:#64748B;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;" title="Clear the Anthropic API key stored in this browser">Change Anthropic key</button>
     <button onclick="clearAffinityToken()" style="background:none;border:1px solid #E8DCC9;color:#64748B;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;" title="Clear the Affinity API key stored in this browser">Change Affinity key</button>
   </div>
@@ -920,7 +917,13 @@
   </div>
 
   <div class="results-section" id="eventResultsSection">
-    <div class="results-header"><h2>Top 10 guests</h2></div>
+    <div class="results-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Top 10 guests</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="eventSearchSavedTag" style="display:none;color:#059669;font-size:12px;font-weight:600;">Saved</span>
+        <button id="saveEventSearchBtn" onclick="saveEventSearch()" style="background:#FFFFFF;border:1px solid #E8DCC9;color:#1A1F2E;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;">Save this search</button>
+      </div>
+    </div>
     <div id="eventResultsBody" class="cards-grid"></div>
   </div>
 
@@ -968,7 +971,13 @@ Florian Hillen, Co-Founder & CEO, VideaHealth"></textarea>
   </div>
 
   <div class="results-section" id="lookalikeResultsSection">
-    <div class="results-header"><h2>Suggested guests</h2></div>
+    <div class="results-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Suggested guests</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="lookalikeSearchSavedTag" style="display:none;color:#059669;font-size:12px;font-weight:600;">Saved</span>
+        <button id="saveLookalikeSearchBtn" onclick="saveLookalikeSearch()" style="background:#FFFFFF;border:1px solid #E8DCC9;color:#1A1F2E;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;">Save this search</button>
+      </div>
+    </div>
     <div id="lookalikeResultsBody" class="cards-grid"></div>
   </div>
 
@@ -2453,8 +2462,8 @@ Run 8–12 targeted web searches to find 15–20 real, named people who match th
 
 Step 2: AFFINITY ENRICHMENT (search_persons only).
 For each unique candidate name, call search_persons EXACTLY ONCE with these parameters: term=full name, with_current_organizations=true, with_interaction_dates=true. Use the response to classify:
-- If a returned person plausibly matches the candidate (name + current org aligns with the company web_search returned) → source: "in_network"
-- Otherwise → source: "new"
+- If a returned person plausibly matches the candidate (name + current org aligns with the company web_search returned) → source: "in_network", and extract the primary_email field from the response — this is the email Nina will use.
+- Otherwise → source: "new". For new people, scan your web_search results for an email address (LinkedIn snippets, company team pages, founder bios often include them). If none surfaces naturally, omit the email field — do NOT guess or fabricate addresses.
 
 CRITICAL Affinity restrictions (these will blow the context window):
 - Use ONLY search_persons. Do NOT call get_lists. Do NOT call get_list_entries. Do NOT call get_person_info. Do NOT call semantic_search. Do NOT call get_company_info. Do NOT call get_company_list_entries. Do NOT call any other Affinity tool.
@@ -2483,7 +2492,7 @@ Always return a single JSON code block. Never respond with prose outside the blo
       "source": "in_network",
       "location": "City, Region (omit if unknown)",
       "linkedin": "https://www.linkedin.com/in/... (omit if unknown)",
-      "email": "email (omit unless in Affinity)",
+      "email": "email address — REQUIRED when available. For in_network: pull primary_email from search_persons. For new: capture from web_search if surfaced. Omit only when neither produced one.",
       "pillar_engagement": "Short factual line for in_network only, e.g. 'In Affinity. Last interaction Mar 2025. Current org: Acme AI.' Omit this field entirely for source=new.",
       "why": "1-2 sentences on why a great guest — their work, recent activity, perspective they'd bring. Grounded in what web_search surfaced.",
       "sources": ["url1", "url2"]
@@ -2494,6 +2503,7 @@ Always return a single JSON code block. Never respond with prose outside the blo
 
 REMINDERS
 - "source" is REQUIRED on every person. Use exactly "in_network" or "new" (lowercase, with underscore).
+- Email is HIGH VALUE — always include it when you have one. For in_network, the primary_email from search_persons IS the answer. For new, scan web_search results for emails. Never fabricate.
 - Do not invent people. Every candidate must come from a real web_search result.
 - Do not invent Pillar engagement detail. Only fill pillar_engagement for in_network people from what search_persons actually returned (org name, last interaction date). If those fields are empty, write "In Affinity — no recent interaction data."`;
 
@@ -2574,6 +2584,7 @@ function clearEventForm() {
 }
 
 function renderEventGuests(parsed) {
+  lastEventResults = parsed;
   const body = document.getElementById('eventResultsBody');
   const people = (parsed && Array.isArray(parsed.people)) ? parsed.people : [];
   const note = parsed && parsed.note ? String(parsed.note) : '';
@@ -2589,10 +2600,10 @@ function renderEventGuests(parsed) {
 
   const cards = people.map((p, idx) => {
     const linkedinLink = p.linkedin
-      ? `<a href="${escapeLookalikeHtml(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`
+      ? `<a href="${escapeLookalikeHtml(p.linkedin)}" target="_blank" rel="noopener" style="background:#0A66C2;color:#FFFFFF;border:1px solid #0A66C2;text-decoration:none;font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;">LinkedIn</a>`
       : '';
     const emailLink = p.email
-      ? `<a href="mailto:${escapeLookalikeHtml(p.email)}">Email</a>`
+      ? `<a href="mailto:${escapeLookalikeHtml(p.email)}" style="background:#e63329;color:#FFFFFF;border:1px solid #e63329;text-decoration:none;font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;">Email</a>`
       : '';
     const sources = (Array.isArray(p.sources) ? p.sources : [])
       .map((s, i) => `<a href="${escapeLookalikeHtml(s)}" target="_blank" rel="noopener" style="color:#e63329; margin-right:6px;">[${i + 1}]</a>`)
@@ -2874,8 +2885,8 @@ Run 8–12 targeted web searches to find 15–20 real, named people who fit the 
 
 Step 3: AFFINITY ENRICHMENT (search_persons only).
 For each unique candidate name from Step 2, call search_persons EXACTLY ONCE with: term=full name, with_current_organizations=true, with_interaction_dates=true. Classify:
-- If a returned person plausibly matches the candidate (name + current org aligns) → source: "in_network"
-- Otherwise → source: "new"
+- If a returned person plausibly matches (name + current org aligns) → source: "in_network", and extract primary_email from the response.
+- Otherwise → source: "new". Scan your web_search results for an email (LinkedIn snippets, company team pages, founder bios). Omit if none surfaces — never fabricate.
 
 CRITICAL Affinity restrictions (these will blow the context window):
 - For non-seed candidates, use ONLY search_persons.
@@ -2901,7 +2912,7 @@ Always return a single JSON code block. Never respond with prose outside the blo
       "source": "in_network",
       "location": "City, Region (omit if unknown)",
       "linkedin": "https://www.linkedin.com/in/... (omit if unknown)",
-      "email": "email (omit unless in Affinity)",
+      "email": "email address — REQUIRED when available. For in_network: pull primary_email from search_persons. For new: capture from web_search if surfaced. Omit only when neither produced one.",
       "pillar_engagement": "Short factual line for in_network only, e.g. 'In Affinity. Last interaction Mar 2025. Current org: Acme AI.' Omit this field entirely for source=new.",
       "why": "1-2 sentences on similarity to the seed pattern, grounded in what web_search surfaced about this person.",
       "sources": ["url1", "url2"]
@@ -2912,6 +2923,7 @@ Always return a single JSON code block. Never respond with prose outside the blo
 
 REMINDERS
 - "source" is REQUIRED on every person. Use exactly "in_network" or "new".
+- Email is HIGH VALUE — always include when you have one. For in_network, primary_email from search_persons IS the answer. For new, scan web_search results. Never fabricate.
 - Do not invent people. Every candidate must come from a real web_search result.
 - Do not include anyone who is already in the seed list.
 - Do not invent Pillar engagement detail. Only fill pillar_engagement from what search_persons actually returned.`;
@@ -2982,6 +2994,7 @@ REMINDERS
 }
 
 function renderLookalikes(parsed) {
+  lastLookalikeResults = parsed;
   const body = document.getElementById('lookalikeResultsBody');
   const people = (parsed && Array.isArray(parsed.people)) ? parsed.people : [];
   const note = parsed && parsed.note ? String(parsed.note) : '';
@@ -3002,10 +3015,10 @@ function renderLookalikes(parsed) {
 
   const cards = people.map((p, idx) => {
     const linkedinLink = p.linkedin
-      ? `<a href="${escapeLookalikeHtml(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`
+      ? `<a href="${escapeLookalikeHtml(p.linkedin)}" target="_blank" rel="noopener" style="background:#0A66C2;color:#FFFFFF;border:1px solid #0A66C2;text-decoration:none;font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;">LinkedIn</a>`
       : '';
     const emailLink = p.email
-      ? `<a href="mailto:${escapeLookalikeHtml(p.email)}">Email</a>`
+      ? `<a href="mailto:${escapeLookalikeHtml(p.email)}" style="background:#e63329;color:#FFFFFF;border:1px solid #e63329;text-decoration:none;font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;">Email</a>`
       : '';
     const sources = (Array.isArray(p.sources) ? p.sources : [])
       .map((s, i) => `<a href="${escapeLookalikeHtml(s)}" target="_blank" rel="noopener" style="color:#e63329; margin-right:6px;">[${i + 1}]</a>`)
@@ -3105,6 +3118,234 @@ function thumbLookalike(btn, dir) {
   }
 }
 
+
+// =========================================================================
+// Saved searches: localStorage-backed history of event + lookalike searches
+// =========================================================================
+
+const SAVED_SEARCHES_KEY = 'pillar_saved_searches';
+let lastEventResults = null;
+let lastLookalikeResults = null;
+
+function loadSavedSearches() {
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_SEARCHES_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeSavedSearches(list) {
+  try {
+    localStorage.setItem(SAVED_SEARCHES_KEY, JSON.stringify(list));
+  } catch (e) {
+    alert('Could not save — browser storage is full. Delete some past searches and try again.');
+  }
+}
+
+function newSearchId() {
+  return 'search_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+}
+
+function flashSavedTag(elementId) {
+  const tag = document.getElementById(elementId);
+  if (!tag) return;
+  tag.style.display = 'inline';
+  setTimeout(() => { tag.style.display = 'none'; }, 2500);
+}
+
+function saveEventSearch() {
+  if (!lastEventResults) {
+    alert('No event results to save yet. Generate a guest list first.');
+    return;
+  }
+  const location = document.getElementById('eventLocation').value.trim();
+  const description = document.getElementById('eventDescription').value.trim();
+  const attributes = document.getElementById('eventAttributes').value.trim();
+  const defaultName = [
+    location || 'Anywhere',
+    (description || attributes || '').split('\n')[0].slice(0, 60) || 'Event'
+  ].join(' · ');
+  const name = prompt('Name this search:', defaultName);
+  if (name === null) return;
+  const list = loadSavedSearches();
+  list.unshift({
+    id: newSearchId(),
+    type: 'event',
+    name: (name && name.trim()) || defaultName,
+    saved_at: Date.now(),
+    inputs: { location, description, attributes },
+    results: lastEventResults
+  });
+  while (list.length > 100) list.pop();
+  writeSavedSearches(list);
+  flashSavedTag('eventSearchSavedTag');
+}
+
+function saveLookalikeSearch() {
+  if (!lastLookalikeResults) {
+    alert('No lookalike results to save yet. Run a search first.');
+    return;
+  }
+  const listName = document.getElementById('lookalikeListInput').value.trim();
+  const seedInput = document.getElementById('lookalikeSeedInput').value.trim();
+  const location = document.getElementById('eventLocation').value.trim();
+  const seedMode = (typeof lookalikeSeedMode !== 'undefined') ? lookalikeSeedMode : 'list';
+  const seedPreview = listName || (seedInput.split('\n')[0] || '').slice(0, 50);
+  const defaultName = ['Lookalike', location || 'Anywhere', seedPreview].filter(Boolean).join(' · ');
+  const name = prompt('Name this search:', defaultName);
+  if (name === null) return;
+  const list = loadSavedSearches();
+  list.unshift({
+    id: newSearchId(),
+    type: 'lookalike',
+    name: (name && name.trim()) || defaultName,
+    saved_at: Date.now(),
+    inputs: { location, seed_mode: seedMode, list_name: listName, seed_input: seedInput },
+    results: lastLookalikeResults
+  });
+  while (list.length > 100) list.pop();
+  writeSavedSearches(list);
+  flashSavedTag('lookalikeSearchSavedTag');
+}
+
+function openPastSearchesModal() {
+  renderSavedSearchesList();
+  document.getElementById('pastSearchesModal').style.display = 'flex';
+}
+
+function closePastSearchesModal() {
+  document.getElementById('pastSearchesModal').style.display = 'none';
+}
+
+function formatSavedDate(ts) {
+  try {
+    return new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  } catch (e) {
+    return String(ts);
+  }
+}
+
+function renderSavedSearchesList() {
+  const list = loadSavedSearches();
+  const container = document.getElementById('pastSearchesList');
+  if (!container) return;
+  if (list.length === 0) {
+    container.innerHTML = '<div style="color:#64748B;padding:24px 4px;text-align:center;font-size:13px;line-height:1.6;">No saved searches yet.<br><span style="color:#94A3B8;font-size:12px;">After a search loads, click "Save this search" to keep it here.</span></div>';
+    return;
+  }
+  container.innerHTML = list.map(s => {
+    const dateStr = formatSavedDate(s.saved_at);
+    const inputs = s.inputs || {};
+    const resultsCount = (s.results && Array.isArray(s.results.people)) ? s.results.people.length : 0;
+    let subtitle;
+    if (s.type === 'event') {
+      subtitle = [inputs.location || 'Anywhere', (inputs.description || inputs.attributes || '').split('\n')[0].slice(0, 90)].filter(Boolean).join(' · ');
+    } else {
+      const seedDesc = (inputs.seed_mode === 'list')
+        ? ('List: ' + (inputs.list_name || '—'))
+        : ('Seed: ' + ((inputs.seed_input || '').split('\n')[0]).slice(0, 60));
+      subtitle = [inputs.location || 'Anywhere', seedDesc].filter(Boolean).join(' · ');
+    }
+    const typeLabel = s.type === 'event' ? 'Event' : 'Lookalike';
+    const typeBg = s.type === 'event' ? '#F2E8DA' : '#E8E1F2';
+    return '<div style="background:#FFFFFF;border:1px solid #E8DCC9;border-radius:8px;padding:14px 16px;margin-bottom:10px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">' +
+            '<span style="background:' + typeBg + ';color:#1A1F2E;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;">' + typeLabel + '</span>' +
+            '<span style="font-weight:600;color:#1A1F2E;font-size:14px;">' + escapeLookalikeHtml(s.name) + '</span>' +
+          '</div>' +
+          '<div style="color:#64748B;font-size:12px;margin-bottom:3px;line-height:1.4;">' + escapeLookalikeHtml(subtitle) + '</div>' +
+          '<div style="color:#94A3B8;font-size:11px;">' + dateStr + ' · ' + resultsCount + ' results</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+          '<button onclick="openSavedSearch(\'' + s.id + '\')" style="background:#e63329;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;">Open</button>' +
+          '<button onclick="deleteSavedSearch(\'' + s.id + '\')" style="background:none;color:#94A3B8;border:1px solid #E8DCC9;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;">Delete</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function deleteSavedSearch(id) {
+  if (!confirm('Delete this saved search? This cannot be undone.')) return;
+  const list = loadSavedSearches().filter(s => s.id !== id);
+  writeSavedSearches(list);
+  renderSavedSearchesList();
+}
+
+function openSavedSearch(id) {
+  const list = loadSavedSearches();
+  const s = list.find(x => x.id === id);
+  if (!s) return;
+  closePastSearchesModal();
+  const inputs = s.inputs || {};
+
+  if (s.type === 'event') {
+    document.getElementById('eventLocation').value = inputs.location || '';
+    document.getElementById('eventDescription').value = inputs.description || '';
+    document.getElementById('eventAttributes').value = inputs.attributes || '';
+    lastEventResults = s.results;
+    renderEventGuests(s.results);
+    document.getElementById('eventResultsSection').classList.add('active');
+    prependCachedBanner('event', s);
+    document.getElementById('eventResultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    document.getElementById('eventLocation').value = inputs.location || '';
+    if (document.getElementById('lookalikeListInput')) document.getElementById('lookalikeListInput').value = inputs.list_name || '';
+    if (document.getElementById('lookalikeSeedInput')) document.getElementById('lookalikeSeedInput').value = inputs.seed_input || '';
+    if (inputs.seed_mode && typeof switchLookalikeTab === 'function') {
+      const tabBtn = document.querySelector('#lookalikeSection .bulk-tab[onclick*="\'' + inputs.seed_mode + '\'"]');
+      if (tabBtn) tabBtn.click();
+    }
+    lastLookalikeResults = s.results;
+    renderLookalikes(s.results);
+    document.getElementById('lookalikeResultsSection').classList.add('active');
+    prependCachedBanner('lookalike', s);
+    document.getElementById('lookalikeResultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function prependCachedBanner(type, search) {
+  const bodyId = (type === 'event') ? 'eventResultsBody' : 'lookalikeResultsBody';
+  const reRunFn = (type === 'event') ? 'generateEventGuests()' : 'findLookalikes()';
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  const dateStr = formatSavedDate(search.saved_at);
+  const banner = '<div style="background:#FAF3EA;border:1px solid #E8DCC9;border-radius:8px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">' +
+    '<div style="font-size:13px;color:#64748B;line-height:1.5;">' +
+      '<span style="font-size:10px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:3px;">Viewing saved search</span>' +
+      '<span style="color:#1A1F2E;font-weight:600;">' + escapeLookalikeHtml(search.name) + '</span>' +
+      '<span style="color:#94A3B8;"> · saved ' + dateStr + '</span>' +
+    '</div>' +
+    '<button onclick="' + reRunFn + '" style="background:#e63329;color:white;border:none;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;flex-shrink:0;">Re-run search</button>' +
+  '</div>';
+  body.innerHTML = banner + body.innerHTML;
+}
+
+// Click outside modal to close
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('pastSearchesModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closePastSearchesModal();
+    });
+  }
+});
+
 </script>
+
+<!-- Past Searches Modal -->
+<div id="pastSearchesModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(26,31,46,0.45);z-index:9990;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="background:#FFFAF5;border-radius:12px;padding:24px 28px;max-width:720px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid #E8DCC9;box-shadow:0 12px 40px rgba(0,0,0,0.15);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h2 style="color:#1A1F2E;font-size:18px;margin:0;">Past searches</h2>
+      <button onclick="closePastSearchesModal()" style="background:none;border:none;font-size:26px;color:#94A3B8;cursor:pointer;padding:0;line-height:1;">&times;</button>
+    </div>
+    <div id="pastSearchesList"></div>
+  </div>
+</div>
+
 </body>
 </html>
